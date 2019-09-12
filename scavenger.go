@@ -80,6 +80,31 @@ func (this *Scavenger) Error(args ...interface{}) {
 	this.AddEntry(LevelError, args)
 }
 
+func (this *Scavenger) AddEntryf(level string, format string, args []interface{}) LogEntry {
+	msg := fmt.Sprintf(format, args...)
+	entry := LogEntry{level, msg}
+	for _, p := range this.extraPrinters {
+		p.Print(level, msg)
+	}
+	return entry
+}
+
+func (this *Scavenger) Debugf(format string, args ...interface{}) {
+	this.AddEntryf(LevelDebug, format, args)
+}
+
+func (this *Scavenger) Infof(format string, args ...interface{}) {
+	this.AddEntryf(LevelInfo, format, args)
+}
+
+func (this *Scavenger) Warnf(format string, args ...interface{}) {
+	this.AddEntryf(LevelWarning, format, args)
+}
+
+func (this *Scavenger) Errorf(format string, args ...interface{}) {
+	this.AddEntryf(LevelError, format, args)
+}
+
 func (this *Scavenger) Reset() {
 	this.mu.Lock()
 	this.entries = nil
