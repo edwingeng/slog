@@ -27,9 +27,13 @@ type Scavenger struct {
 }
 
 func NewScavenger(printers ...Printer) (scav *Scavenger) {
-	return &Scavenger{
-		extraPrinters: printers,
+	scav = &Scavenger{}
+	for _, p := range printers {
+		if p != nil {
+			scav.extraPrinters = append(scav.extraPrinters, p)
+		}
 	}
+	return
 }
 
 func (this *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
@@ -83,6 +87,7 @@ func (this *Scavenger) Error(args ...interface{}) {
 func (this *Scavenger) AddEntryf(level string, format string, args []interface{}) LogEntry {
 	msg := fmt.Sprintf(format, args...)
 	entry := LogEntry{level, msg}
+	this.entries = append(this.entries, entry)
 	for _, p := range this.extraPrinters {
 		p.Print(level, msg)
 	}

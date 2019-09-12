@@ -192,3 +192,82 @@ func TestScavenger_Entries(t *testing.T) {
 		}
 	}
 }
+
+func TestScavenger_FindUnique(t *testing.T) {
+	var scav Scavenger
+	scav.Debugf("%d", 1)
+	scav.Infof("%s", "it is a good day to die")
+	scav.Warnf("%d, %s", 3, "c")
+	scav.Errorf("%d", 4)
+	scav.Warnf("%s", "it is a good day to die")
+	scav.Errorf("%d", 1)
+
+	if scav.Len() != 6 {
+		t.Fatal("scav.Len() != 6", scav.Len())
+	}
+
+	dump := `DEBUG	1
+INFO	it is a good day to die
+WARNING	3, c
+ERROR	4
+WARNING	it is a good day to die
+ERROR	1
+`
+	if scav.Dump() != dump {
+		t.Fatal("something is wrong with Dump")
+	}
+
+	if _, ok := scav.FindUniqueString("1"); ok {
+		t.Fatal("FindUniqueString does not work as expected")
+	}
+	if _, ok := scav.FindUniqueString("it is a good day to die"); ok {
+		t.Fatal("FindUniqueString does not work as expected")
+	}
+	if _, ok := scav.FindUniqueString("3"); !ok {
+		t.Fatal("FindUniqueString does not work as expected")
+	}
+
+	if _, ok := scav.FindUniqueRegexp("1"); ok {
+		t.Fatal("FindUniqueRegexp does not work as expected")
+	}
+	if _, ok := scav.FindUniqueRegexp("it is a good day to die"); ok {
+		t.Fatal("FindUniqueRegexp does not work as expected")
+	}
+	if _, ok := scav.FindUniqueRegexp("3"); !ok {
+		t.Fatal("FindUniqueRegexp does not work as expected")
+	}
+	if _, ok := scav.FindUniqueRegexp("[3,4]"); ok {
+		t.Fatal("FindUniqueRegexp does not work as expected")
+	}
+}
+
+func TestScavenger_Filter(t *testing.T) {
+	var scav Scavenger
+	scav.Debugf("%d", 1)
+	scav.Infof("%s", "it is a good day to die")
+	scav.Warnf("%d, %s", 3, "c")
+	scav.Errorf("%d", 4)
+	scav.Warnf("%s", "it is a good day to die")
+	scav.Errorf("%d", 1)
+
+	newScav := scav.Filter(func(level, msg string) bool {
+		switch msg {
+		case "1":
+			return level == LevelError
+		case "it is a good day to die":
+			return level == LevelInfo
+		default:
+			return true
+		}
+	})
+
+	dump := `INFO	it is a good day to die
+WARNING	3, c
+ERROR	4
+ERROR	1
+`
+
+	if newScav.Dump() != dump {
+		t.Fatal("something is wrong with Dump")
+	}
+}
