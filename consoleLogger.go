@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	levelDebug = "DEBUG"
-	levelInfo  = "INFO "
-	levelWarn  = "WARNING"
-	levelError = "ERROR"
+	LevelDebug   = "DEBUG"
+	LevelInfo    = "INFO"
+	LevelWarning = "WARNING"
+	LevelError   = "ERROR"
 )
 
 type ConsoleLogger struct{}
@@ -26,19 +26,19 @@ func (cl ConsoleLogger) println(level string, args []interface{}) {
 }
 
 func (cl ConsoleLogger) Debug(args ...interface{}) {
-	cl.println(levelDebug, args)
+	cl.println(LevelDebug, args)
 }
 
 func (cl ConsoleLogger) Info(args ...interface{}) {
-	cl.println(levelInfo, args)
+	cl.println(LevelInfo, args)
 }
 
 func (cl ConsoleLogger) Warn(args ...interface{}) {
-	cl.println(levelWarn, args)
+	cl.println(LevelWarning, args)
 }
 
 func (cl ConsoleLogger) Error(args ...interface{}) {
-	cl.println(levelError, args)
+	cl.println(LevelError, args)
 }
 
 func (cl ConsoleLogger) printf(level string, format string, args []interface{}) {
@@ -53,17 +53,17 @@ func (cl ConsoleLogger) printf(level string, format string, args []interface{}) 
 }
 
 func (cl ConsoleLogger) Debugf(format string, args ...interface{}) {
-	cl.printf(levelDebug, format, args)
+	cl.printf(LevelDebug, format, args)
 }
 
 func (cl ConsoleLogger) Infof(format string, args ...interface{}) {
-	cl.printf(levelInfo, format, args)
+	cl.printf(LevelInfo, format, args)
 }
 
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
-	cl.printf(levelWarn, format, args)
+	cl.printf(LevelWarning, format, args)
 }
 
 func (cl ConsoleLogger) Errorf(format string, args ...interface{}) {
-	cl.printf(levelError, format, args)
+	cl.printf(LevelError, format, args)
 }
