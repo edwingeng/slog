@@ -2,6 +2,10 @@ package slog
 
 type DumbLogger struct{}
 
+func NewDumbLogger() DumbLogger {
+	return DumbLogger{}
+}
+
 func (DumbLogger) Debug(args ...interface{}) {}
 func (DumbLogger) Info(args ...interface{})  {}
 func (DumbLogger) Warn(args ...interface{})  {}

@@ -15,6 +15,10 @@ const (
 
 type ConsoleLogger struct{}
 
+func NewConsoleLogger() ConsoleLogger {
+	return ConsoleLogger{}
+}
+
 func (cl ConsoleLogger) println(level string, args []interface{}) {
 	if len(args) == 0 {
 		return
@@ -66,4 +70,8 @@ func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
 
 func (cl ConsoleLogger) Errorf(format string, args ...interface{}) {
 	cl.printf(LevelError, format, args)
+}
+
+func (cl ConsoleLogger) Print(level, message string) {
+	log.Printf("%s\t%v\n", level, message)
 }
