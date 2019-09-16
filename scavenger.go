@@ -85,6 +85,9 @@ func (this *Scavenger) Error(args ...interface{}) {
 }
 
 func (this *Scavenger) AddEntryf(level string, format string, args []interface{}) LogEntry {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
 	msg := fmt.Sprintf(format, args...)
 	entry := LogEntry{level, msg}
 	this.entries = append(this.entries, entry)
@@ -116,55 +119,55 @@ func (this *Scavenger) Reset() {
 	this.mu.Unlock()
 }
 
-func (this *Scavenger) FindString(str string) (string, bool) {
+func (this *Scavenger) FindString(str string) (string, int, bool) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
 	if str != "" {
-		for _, e := range this.entries {
+		for i, e := range this.entries {
 			if strings.Contains(e.Message, str) {
-				return e.Message, true
+				return e.Message, i, true
 			}
 		}
 	} else {
-		for _, e := range this.entries {
+		for i, e := range this.entries {
 			if e.Message == "" {
-				return e.Message, true
+				return e.Message, i, true
 			}
 		}
 	}
-	return "", false
+	return "", 0, false
 }
 
-func (this *Scavenger) FindUniqueString(str string) (string, bool) {
+func (this *Scavenger) FindUniqueString(str string) (string, int, bool) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
 	var r string
 	var n int
 	if str != "" {
-		for _, e := range this.entries {
+		for i, e := range this.entries {
 			if strings.Contains(e.Message, str) {
 				r = e.Message
 				switch n++; n {
 				case 1:
 				default:
-					return r, false
+					return r, i, false
 				}
 			}
 		}
 	} else {
-		for _, e := range this.entries {
+		for i, e := range this.entries {
 			if e.Message == "" {
 				switch n++; n {
 				case 1:
 				default:
-					return r, false
+					return r, i, false
 				}
 			}
 		}
 	}
-	return r, n == 1
+	return r, 0, n == 1
 }
 
 func (this *Scavenger) FindStringSequence(a []string) (int, bool) {
@@ -190,7 +193,7 @@ func (this *Scavenger) FindStringSequence(a []string) (int, bool) {
 	return j, j == len(a)
 }
 
-func (this *Scavenger) FindRegexp(str string) (string, bool) {
+func (this *Scavenger) FindRegexp(str string) (string, int, bool) {
 	if str == "" {
 		return this.FindString(str)
 	}
@@ -202,15 +205,15 @@ func (this *Scavenger) FindRegexp(str string) (string, bool) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	for _, e := range this.entries {
+	for i, e := range this.entries {
 		if rex.FindString(e.Message) != "" {
-			return e.Message, true
+			return e.Message, i, true
 		}
 	}
-	return "", false
+	return "", 0, false
 }
 
-func (this *Scavenger) FindUniqueRegexp(str string) (string, bool) {
+func (this *Scavenger) FindUniqueRegexp(str string) (string, int, bool) {
 	if str == "" {
 		return this.FindString(str)
 	}
@@ -224,17 +227,17 @@ func (this *Scavenger) FindUniqueRegexp(str string) (string, bool) {
 
 	var r string
 	var n int
-	for _, e := range this.entries {
+	for i, e := range this.entries {
 		if rex.FindString(e.Message) != "" {
 			r = e.Message
 			switch n++; n {
 			case 1:
 			default:
-				return r, false
+				return r, i, false
 			}
 		}
 	}
-	return r, n == 1
+	return r, 0, n == 1
 }
 
 func (this *Scavenger) FindRegexpSequence(a []string) (int, bool) {
@@ -264,7 +267,7 @@ func (this *Scavenger) FindRegexpSequence(a []string) (int, bool) {
 	return j, j == len(a)
 }
 
-func (this *Scavenger) Find(str string) (string, bool) {
+func (this *Scavenger) Find(str string) (string, int, bool) {
 	if strings.HasPrefix(str, rexPrefix) {
 		str = strings.TrimLeftFunc(strings.TrimPrefix(str, rexPrefix), unicode.IsSpace)
 		return this.FindRegexp(str)
@@ -273,7 +276,7 @@ func (this *Scavenger) Find(str string) (string, bool) {
 	}
 }
 
-func (this *Scavenger) FindUnique(str string) (string, bool) {
+func (this *Scavenger) FindUnique(str string) (string, int, bool) {
 	if strings.HasPrefix(str, rexPrefix) {
 		str = strings.TrimLeftFunc(strings.TrimPrefix(str, rexPrefix), unicode.IsSpace)
 		return this.FindUniqueRegexp(str)

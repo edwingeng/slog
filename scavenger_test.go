@@ -24,34 +24,34 @@ ERROR	4
 		t.Fatal("something is wrong with Dump")
 	}
 
-	if _, ok := scav.FindString(""); ok {
+	if _, _, ok := scav.FindString(""); ok {
 		t.Fatal("FindString does not work as expected")
 	}
-	if _, ok := scav.FindString("5"); ok {
+	if _, _, ok := scav.FindString("5"); ok {
 		t.Fatal("FindString does not work as expected")
 	}
-	if _, ok := scav.FindString("3"); !ok {
+	if _, _, ok := scav.FindString("3"); !ok {
 		t.Fatal("FindString does not work as expected")
 	}
 
-	if _, ok := scav.FindRegexp(""); ok {
+	if _, _, ok := scav.FindRegexp(""); ok {
 		t.Fatal("FindRegexp does not work as expected")
 	}
-	if _, ok := scav.FindRegexp("5"); ok {
+	if _, _, ok := scav.FindRegexp("5"); ok {
 		t.Fatal("FindRegexp does not work as expected")
 	}
-	if _, ok := scav.FindRegexp("g.+?d"); !ok {
+	if _, _, ok := scav.FindRegexp("g.+?d"); !ok {
 		t.Fatal("FindRegexp does not work as expected")
 	}
-	if _, ok := scav.FindRegexp("^.+good.+die$"); !ok {
+	if _, _, ok := scav.FindRegexp("^.+good.+die$"); !ok {
 		t.Fatal("FindRegexp does not work as expected")
 	}
 
 	scav.Debug()
-	if _, ok := scav.FindString(""); !ok {
+	if _, _, ok := scav.FindString(""); !ok {
 		t.Fatal("FindString does not work as expected")
 	}
-	if _, ok := scav.FindRegexp(""); !ok {
+	if _, _, ok := scav.FindRegexp(""); !ok {
 		t.Fatal("FindRegexp does not work as expected")
 	}
 
@@ -217,26 +217,26 @@ ERROR	1
 		t.Fatal("something is wrong with Dump")
 	}
 
-	if _, ok := scav.FindUniqueString("1"); ok {
+	if _, _, ok := scav.FindUniqueString("1"); ok {
 		t.Fatal("FindUniqueString does not work as expected")
 	}
-	if _, ok := scav.FindUniqueString("it is a good day to die"); ok {
+	if _, _, ok := scav.FindUniqueString("it is a good day to die"); ok {
 		t.Fatal("FindUniqueString does not work as expected")
 	}
-	if _, ok := scav.FindUniqueString("3"); !ok {
+	if _, _, ok := scav.FindUniqueString("3"); !ok {
 		t.Fatal("FindUniqueString does not work as expected")
 	}
 
-	if _, ok := scav.FindUniqueRegexp("1"); ok {
+	if _, _, ok := scav.FindUniqueRegexp("1"); ok {
 		t.Fatal("FindUniqueRegexp does not work as expected")
 	}
-	if _, ok := scav.FindUniqueRegexp("it is a good day to die"); ok {
+	if _, _, ok := scav.FindUniqueRegexp("it is a good day to die"); ok {
 		t.Fatal("FindUniqueRegexp does not work as expected")
 	}
-	if _, ok := scav.FindUniqueRegexp("3"); !ok {
+	if _, _, ok := scav.FindUniqueRegexp("3"); !ok {
 		t.Fatal("FindUniqueRegexp does not work as expected")
 	}
-	if _, ok := scav.FindUniqueRegexp("[3,4]"); ok {
+	if _, _, ok := scav.FindUniqueRegexp("[3,4]"); ok {
 		t.Fatal("FindUniqueRegexp does not work as expected")
 	}
 }
