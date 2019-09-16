@@ -3,6 +3,8 @@ package slog
 import (
 	"fmt"
 	"log"
+	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -13,10 +15,26 @@ const (
 	LevelError   = "ERROR"
 )
 
-type ConsoleLogger struct{}
+type ConsoleLogger struct {
+	extraSkip int
+}
 
-func NewConsoleLogger() ConsoleLogger {
-	return ConsoleLogger{}
+func NewConsoleLogger(opts ...Option) ConsoleLogger {
+	var cl ConsoleLogger
+	for _, opt := range opts {
+		opt(&cl)
+	}
+	return cl
+}
+
+func (cl ConsoleLogger) caller(skip int) (string, int, bool) {
+	_, file, line, ok := runtime.Caller(skip + 1)
+	if ok && file != "" {
+		if idx := strings.LastIndex(file, string(filepath.Separator)); idx >= 0 {
+			file = file[idx+1:]
+		}
+	}
+	return file, line, ok
 }
 
 func (cl ConsoleLogger) println(level string, args []interface{}) {
@@ -25,7 +43,13 @@ func (cl ConsoleLogger) println(level string, args []interface{}) {
 	}
 	a := make([]interface{}, len(args))
 	copy(a, args)
-	a[0] = fmt.Sprintf("%s\t%v", level, a[0])
+	file, line, ok := cl.caller(2 + cl.extraSkip)
+	if ok && file != "" {
+		a[0] = fmt.Sprintf("%s\t%s:%d\t%v", level, file, line, a[0])
+	} else {
+		a[0] = fmt.Sprintf("%s\t?\t%v", level, a[0])
+	}
+
 	log.Println(a...)
 }
 
@@ -51,8 +75,12 @@ func (cl ConsoleLogger) printf(level string, format string, args []interface{}) 
 		log.Printf(format, args...)
 		return
 	}
-
-	format = fmt.Sprintf("%s\t%s\n", level, format)
+	file, line, ok := cl.caller(2 + cl.extraSkip)
+	if ok && file != "" {
+		format = fmt.Sprintf("%s\t%s:%d\t%s\n", level, file, line, format)
+	} else {
+		format = fmt.Sprintf("%s\t?\t%s\n", level, format)
+	}
 	log.Printf(format, args...)
 }
 
@@ -73,5 +101,18 @@ func (cl ConsoleLogger) Errorf(format string, args ...interface{}) {
 }
 
 func (cl ConsoleLogger) Print(level, message string) {
-	log.Printf("%s\t%v\n", level, message)
+	file, line, ok := cl.caller(1 + cl.extraSkip)
+	if ok && file != "" {
+		log.Printf("%s\t%s:%d\t%s\n", level, file, line, message)
+	} else {
+		log.Printf("%s\t?\t%s\n", level, message)
+	}
+}
+
+type Option func(cl *ConsoleLogger)
+
+func WithExtraCallerSkip(extraSkip int) Option {
+	return func(cl *ConsoleLogger) {
+		cl.extraSkip = extraSkip
+	}
 }
