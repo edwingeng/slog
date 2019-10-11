@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	LevelDebug   = "DEBUG"
-	LevelInfo    = "INFO"
-	LevelWarning = "WARNING"
-	LevelError   = "ERROR"
+	LevelDebug = "DEBUG"
+	LevelInfo  = "INFO"
+	LevelWarn  = "WARN"
+	LevelError = "ERROR"
 )
 
 type ConsoleLogger struct {
@@ -62,7 +62,7 @@ func (cl ConsoleLogger) Info(args ...interface{}) {
 }
 
 func (cl ConsoleLogger) Warn(args ...interface{}) {
-	cl.println(LevelWarning, args)
+	cl.println(LevelWarn, args)
 }
 
 func (cl ConsoleLogger) Error(args ...interface{}) {
@@ -93,7 +93,7 @@ func (cl ConsoleLogger) Infof(format string, args ...interface{}) {
 }
 
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
-	cl.printf(LevelWarning, format, args)
+	cl.printf(LevelWarn, format, args)
 }
 
 func (cl ConsoleLogger) Errorf(format string, args ...interface{}) {

@@ -77,7 +77,7 @@ func (this *Scavenger) Info(args ...interface{}) {
 }
 
 func (this *Scavenger) Warn(args ...interface{}) {
-	this.AddEntry(LevelWarning, args)
+	this.AddEntry(LevelWarn, args)
 }
 
 func (this *Scavenger) Error(args ...interface{}) {
@@ -106,7 +106,7 @@ func (this *Scavenger) Infof(format string, args ...interface{}) {
 }
 
 func (this *Scavenger) Warnf(format string, args ...interface{}) {
-	this.AddEntryf(LevelWarning, format, args)
+	this.AddEntryf(LevelWarn, format, args)
 }
 
 func (this *Scavenger) Errorf(format string, args ...interface{}) {

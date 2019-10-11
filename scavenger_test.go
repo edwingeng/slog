@@ -17,7 +17,7 @@ func TestScavenger(t *testing.T) {
 
 	dump := `DEBUG	1
 INFO	it is a good day to die
-WARNING	3, c
+WARN	3, c
 ERROR	4
 `
 	if scav.Dump() != dump {
@@ -208,9 +208,9 @@ func TestScavenger_FindUnique(t *testing.T) {
 
 	dump := `DEBUG	1
 INFO	it is a good day to die
-WARNING	3, c
+WARN	3, c
 ERROR	4
-WARNING	it is a good day to die
+WARN	it is a good day to die
 ERROR	1
 `
 	if scav.Dump() != dump {
@@ -262,7 +262,7 @@ func TestScavenger_Filter(t *testing.T) {
 	})
 
 	dump := `INFO	it is a good day to die
-WARNING	3, c
+WARN	3, c
 ERROR	4
 ERROR	1
 `
