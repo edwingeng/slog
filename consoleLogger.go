@@ -16,7 +16,10 @@ const (
 )
 
 type ConsoleLogger struct {
-	extraSkip int
+	extraSkip    int
+	disableDebug bool
+	disableInfo  bool
+	disableWarn  bool
 }
 
 func NewConsoleLogger(opts ...Option) ConsoleLogger {
@@ -54,15 +57,21 @@ func (cl ConsoleLogger) println(level string, args []interface{}) {
 }
 
 func (cl ConsoleLogger) Debug(args ...interface{}) {
-	cl.println(LevelDebug, args)
+	if !cl.disableDebug {
+		cl.println(LevelDebug, args)
+	}
 }
 
 func (cl ConsoleLogger) Info(args ...interface{}) {
-	cl.println(LevelInfo, args)
+	if !cl.disableInfo {
+		cl.println(LevelInfo, args)
+	}
 }
 
 func (cl ConsoleLogger) Warn(args ...interface{}) {
-	cl.println(LevelWarn, args)
+	if !cl.disableWarn {
+		cl.println(LevelWarn, args)
+	}
 }
 
 func (cl ConsoleLogger) Error(args ...interface{}) {
@@ -85,15 +94,21 @@ func (cl ConsoleLogger) printf(level string, format string, args []interface{}) 
 }
 
 func (cl ConsoleLogger) Debugf(format string, args ...interface{}) {
-	cl.printf(LevelDebug, format, args)
+	if !cl.disableDebug {
+		cl.printf(LevelDebug, format, args)
+	}
 }
 
 func (cl ConsoleLogger) Infof(format string, args ...interface{}) {
-	cl.printf(LevelInfo, format, args)
+	if !cl.disableInfo {
+		cl.printf(LevelInfo, format, args)
+	}
 }
 
 func (cl ConsoleLogger) Warnf(format string, args ...interface{}) {
-	cl.printf(LevelWarn, format, args)
+	if !cl.disableWarn {
+		cl.printf(LevelWarn, format, args)
+	}
 }
 
 func (cl ConsoleLogger) Errorf(format string, args ...interface{}) {
@@ -114,5 +129,21 @@ type Option func(cl *ConsoleLogger)
 func WithExtraCallerSkip(extraSkip int) Option {
 	return func(cl *ConsoleLogger) {
 		cl.extraSkip = extraSkip
+	}
+}
+
+func WithLevel(level string) Option {
+	return func(cl *ConsoleLogger) {
+		switch level {
+		case LevelDebug:
+		case LevelInfo:
+			cl.disableDebug = true
+		case LevelWarn:
+			cl.disableDebug, cl.disableInfo = true, true
+		case LevelError:
+			cl.disableDebug, cl.disableInfo, cl.disableWarn = true, true, true
+		default:
+			panic("invalid level: " + level)
+		}
 	}
 }
