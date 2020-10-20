@@ -17,6 +17,7 @@ type Printer interface {
 type LogEntry struct {
 	Level   string
 	Message string
+	Fields  map[interface{}]interface{}
 }
 
 type Scavenger struct {
@@ -24,6 +25,14 @@ type Scavenger struct {
 
 	mu      sync.Mutex
 	entries []LogEntry
+}
+
+func (this *Scavenger) NewLoggerWith(args ...interface{}) Logger {
+	panic("NewLoggerWith is not supported")
+}
+
+func (this *Scavenger) FlushLogger() error {
+	return nil
 }
 
 func NewScavenger(printers ...Printer) (scav *Scavenger) {
@@ -42,7 +51,7 @@ func (this *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
 
 	if len(args) == 1 {
 		msg := fmt.Sprint(args[0])
-		entry := LogEntry{level, msg}
+		entry := LogEntry{Level: level, Message: msg, Fields: nil}
 		this.entries = append(this.entries, entry)
 		for _, p := range this.extraPrinters {
 			p.Print(level, msg)
@@ -60,7 +69,7 @@ func (this *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
 		}
 	}
 	msg := sb.String()
-	entry := LogEntry{level, msg}
+	entry := LogEntry{Level: level, Message: msg, Fields: nil}
 	this.entries = append(this.entries, entry)
 	for _, p := range this.extraPrinters {
 		p.Print(level, msg)
@@ -89,7 +98,7 @@ func (this *Scavenger) AddEntryf(level string, format string, args []interface{}
 	defer this.mu.Unlock()
 
 	msg := fmt.Sprintf(format, args...)
-	entry := LogEntry{level, msg}
+	entry := LogEntry{Level: level, Message: msg, Fields: nil}
 	this.entries = append(this.entries, entry)
 	for _, p := range this.extraPrinters {
 		p.Print(level, msg)
@@ -363,4 +372,32 @@ func (this *Scavenger) Filter(f func(level, msg string) bool) (scav *Scavenger) 
 		}
 	}
 	return
+}
+
+func (this *Scavenger) Debugw(msg string, keyVals ...interface{}) {
+	this.AddEntryw(LevelDebug, msg, keyVals...)
+}
+
+func (this *Scavenger) Infow(msg string, keyVals ...interface{}) {
+	this.AddEntryw(LevelInfo, msg, keyVals...)
+}
+
+func (this *Scavenger) Warnw(msg string, keyVals ...interface{}) {
+	this.AddEntryw(LevelWarn, msg, keyVals...)
+}
+
+func (this *Scavenger) Errorw(msg string, keyVals ...interface{}) {
+	this.AddEntryw(LevelError, msg, keyVals...)
+}
+
+func (this *Scavenger) AddEntryw(level string, msg string, keyVals ...interface{}) LogEntry {
+	var args = []interface{}{msg}
+	entry := this.AddEntry(level, args)
+	if len(keyVals) >= 2 {
+		entry.Fields = make(map[interface{}]interface{})
+		for i := 0; i < len(keyVals); i++ {
+			entry.Fields[keyVals[i]] = keyVals[i+1]
+		}
+	}
+	return entry
 }
