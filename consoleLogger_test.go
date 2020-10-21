@@ -12,7 +12,11 @@ const timePattern = `\d{2}:\d{2}:\d{2} `
 
 func rexMatch(t *testing.T, level, pattern string, data []byte) {
 	t.Helper()
-	full := "^" + timePattern + level + "\tconsoleLogger_test.go:\\d+\t" + pattern + "\n$"
+	var padding string
+	if len(level) == 4 {
+		padding = " "
+	}
+	full := "^" + timePattern + level + padding + " consoleLogger_test.go:\\d+\t" + pattern + "\n$"
 	matched, err := regexp.Match(full, data)
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +102,7 @@ func TestWithExtraCallerSkip(t *testing.T) {
 	stdLog := log.New(&buf, "", 0)
 	logger := NewConsoleLogger(WithStdLogger(stdLog), WithExtraCallerSkip(1))
 	logger.Infof("hello %s", "world")
-	pat1 := LevelInfo + "\ttesting.go:\\d+\thello world"
+	pat1 := LevelInfo + "  testing.go:\\d+\thello world"
 	matched, err := regexp.Match(pat1, buf.Bytes())
 	if err != nil {
 		t.Fatal(err)

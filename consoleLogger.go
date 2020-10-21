@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"unicode"
 )
 
 const (
@@ -60,7 +59,7 @@ func (cl ConsoleLogger) NewLoggerWith(args ...interface{}) Logger {
 	return newLogger
 }
 
-func (cl ConsoleLogger) caller(skip int) (string, int, bool) {
+func caller(skip int) (string, int, bool) {
 	_, file, line, ok := runtime.Caller(skip + 1)
 	if ok && file != "" {
 		if idx := strings.LastIndex(file, string(filepath.Separator)); idx >= 0 {
@@ -70,13 +69,17 @@ func (cl ConsoleLogger) caller(skip int) (string, int, bool) {
 	return file, line, ok
 }
 
-func (cl ConsoleLogger) buildBuffer(level string) bytes.Buffer {
+func (cl ConsoleLogger) buildHeader(level string) bytes.Buffer {
 	var buf bytes.Buffer
-	file, line, ok := cl.caller(3 + cl.extraSkip)
+	file, line, ok := caller(3 + cl.extraSkip)
+	buf.WriteString(level)
+	if len(level) == 4 {
+		_ = buf.WriteByte(' ')
+	}
 	if ok && file != "" {
-		_, _ = fmt.Fprintf(&buf, "%s\t%s:%d\t", level, file, line)
+		_, _ = fmt.Fprintf(&buf, " %s:%d\t", file, line)
 	} else {
-		_, _ = fmt.Fprintf(&buf, "%s\t?\t", level)
+		_, _ = buf.WriteString(" ?\t")
 	}
 	return buf
 }
@@ -86,20 +89,20 @@ func (cl ConsoleLogger) println(level string, args []interface{}) {
 		return
 	}
 
-	buf := cl.buildBuffer(level)
+	buf := cl.buildHeader(level)
 	written, _ := fmt.Fprint(&buf, args...)
-	cl.output(&buf, written)
+	cl.outputImpl(&buf, written)
 }
 
-func (cl ConsoleLogger) output(buf *bytes.Buffer, msgLen int) {
+func (cl ConsoleLogger) outputImpl(buf *bytes.Buffer, written int) {
 	if len(cl.fields) > 0 {
-		if msgLen > 0 {
+		if written > 0 {
 			_ = buf.WriteByte('\t')
 		}
 		_, _ = buf.WriteString(cl.fields)
 	}
 	_ = buf.WriteByte('\n')
-	_ = cl.stdLog.Output(1, buf.String())
+	_ = cl.stdLog.Output(0, buf.String())
 }
 
 func (cl ConsoleLogger) Debug(args ...interface{}) {
@@ -125,19 +128,10 @@ func (cl ConsoleLogger) Error(args ...interface{}) {
 }
 
 func (cl ConsoleLogger) printf(level string, format string, args []interface{}) {
-	buf := cl.buildBuffer(level)
-	formatted := cleanMessage(fmt.Sprintf(format, args...))
+	buf := cl.buildHeader(level)
+	formatted := strings.TrimSuffix(fmt.Sprintf(format, args...), "\n")
 	written, _ := buf.WriteString(formatted)
-	cl.output(&buf, written)
-}
-
-func cleanMessage(str string) string {
-	if idx := strings.LastIndexByte(str, '\n'); idx >= 0 {
-		if strings.TrimSpace(str[idx+1:]) == "" {
-			return str[:idx]
-		}
-	}
-	return strings.TrimRightFunc(str, unicode.IsSpace)
+	cl.outputImpl(&buf, written)
 }
 
 func (cl ConsoleLogger) Debugf(format string, args ...interface{}) {
@@ -163,9 +157,9 @@ func (cl ConsoleLogger) Errorf(format string, args ...interface{}) {
 }
 
 func (cl ConsoleLogger) Print(level, msg string) {
-	buf := cl.buildBuffer(level)
-	written, _ := buf.WriteString(cleanMessage(msg))
-	cl.output(&buf, written)
+	buf := cl.buildHeader(level)
+	written, _ := buf.WriteString(strings.TrimSuffix(msg, "\n"))
+	cl.outputImpl(&buf, written)
 }
 
 func (cl ConsoleLogger) Debugw(msg string, keyVals ...interface{}) {
@@ -191,21 +185,22 @@ func (cl ConsoleLogger) Errorw(msg string, keyVals ...interface{}) {
 }
 
 func (cl ConsoleLogger) printw(level string, msg string, keyVals []interface{}) {
-	buf := cl.buildBuffer(level)
-	written, _ := buf.WriteString(cleanMessage(msg))
+	buf := cl.buildHeader(level)
+	written, _ := buf.WriteString(strings.TrimSuffix(msg, "\n"))
 
-	var n = buf.Len()
-	if len(cl.fields) > 0 {
+	fLen := len(cl.fields)
+	if fLen > 0 {
 		if written > 0 {
 			_ = buf.WriteByte('\t')
 		}
-		_, _ = buf.WriteString(cl.fields[:len(cl.fields)-1])
+		_, _ = buf.WriteString(cl.fields[:fLen-1])
 	}
 
-	for i := 0; i < len(keyVals)-1; i += 2 {
+	n := len(keyVals)
+	for i := 0; i < n-1; i += 2 {
 		if i > 0 {
 			_, _ = buf.WriteString(", ")
-		} else if len(cl.fields) > 0 {
+		} else if fLen > 0 {
 			_, _ = buf.WriteString(", ")
 		} else {
 			if written > 0 {
@@ -220,12 +215,12 @@ func (cl ConsoleLogger) printw(level string, msg string, keyVals []interface{}) 
 		_, _ = fmt.Fprintf(&buf, "%q:%s", fmt.Sprint(keyVals[i]), d)
 	}
 
-	if buf.Len() > n {
+	if fLen > 0 || n > 1 {
 		buf.WriteByte('}')
 	}
 
 	_ = buf.WriteByte('\n')
-	_ = cl.stdLog.Output(1, buf.String())
+	_ = cl.stdLog.Output(0, buf.String())
 }
 
 func (cl ConsoleLogger) FlushLogger() error {
@@ -266,6 +261,7 @@ func WithLevel(level string) Option {
 
 func WithStdLogger(stdLog *log.Logger) Option {
 	return func(cl *ConsoleLogger) {
+		stdLog.SetFlags(stdLog.Flags() &^ (log.Llongfile | log.Lshortfile))
 		cl.stdLog = stdLog
 	}
 }
