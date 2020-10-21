@@ -174,3 +174,32 @@ func TestConsoleLogger_NewLoggerWith(t *testing.T) {
 	pat4 := "hello\t{\"bar\":\"qux\", \"foo\":100}"
 	rexMatch(t, LevelInfo, pat4, buf.Bytes())
 }
+
+func TestConsoleLogger_bare(t *testing.T) {
+	var buf bytes.Buffer
+	stdLog := log.New(&buf, "", log.LstdFlags)
+	x1 := NewConsoleLogger(WithStdLogger(stdLog), WithBareMode())
+
+	x1.Debug("hello")
+	if buf.String() != "hello\n" {
+		t.Fatal("bare: unexpected output")
+	}
+
+	buf.Reset()
+	x1.Infof("hello %d", 100)
+	if buf.String() != "hello 100\n" {
+		t.Fatal("bare: unexpected output")
+	}
+
+	buf.Reset()
+	x1.Warnw("hello")
+	if buf.String() != "hello\n" {
+		t.Fatal("bare: unexpected output")
+	}
+
+	buf.Reset()
+	x1.Errorw("hello", "foo", 100)
+	if buf.String() != "hello\t{\"foo\":100}\n" {
+		t.Fatal("bare: unexpected output")
+	}
+}

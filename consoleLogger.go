@@ -23,6 +23,7 @@ type ConsoleLogger struct {
 	stdLog *log.Logger
 
 	extraSkip    int
+	bare         bool
 	disableDebug bool
 	disableInfo  bool
 	disableWarn  bool
@@ -35,6 +36,9 @@ func NewConsoleLogger(opts ...Option) ConsoleLogger {
 	cl.stdLog = log.New(os.Stderr, "", log.LstdFlags)
 	for _, opt := range opts {
 		opt(&cl)
+	}
+	if cl.bare {
+		cl.stdLog.SetFlags(0)
 	}
 	return cl
 }
@@ -71,6 +75,10 @@ func caller(skip int) (string, int, bool) {
 
 func (cl ConsoleLogger) buildHeader(level string) bytes.Buffer {
 	var buf bytes.Buffer
+	if cl.bare {
+		return buf
+	}
+
 	file, line, ok := caller(3 + cl.extraSkip)
 	buf.WriteString(level)
 	if len(level) == 4 {
@@ -303,5 +311,11 @@ func withFieldsImpl(m map[string]interface{}, args ...interface{}) Option {
 
 	return func(cl *ConsoleLogger) {
 		cl.fields = buf.String()
+	}
+}
+
+func WithBareMode() Option {
+	return func(cl *ConsoleLogger) {
+		cl.bare = true
 	}
 }
