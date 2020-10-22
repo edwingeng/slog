@@ -1,7 +1,9 @@
 package slog
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"sync"
@@ -17,26 +19,21 @@ type Printer interface {
 type LogEntry struct {
 	Level   string
 	Message string
-	Fields  map[interface{}]interface{}
 }
 
 type Scavenger struct {
+	buf           bytes.Buffer
+	internal      ConsoleLogger
 	extraPrinters []Printer
 
 	mu      sync.Mutex
 	entries []LogEntry
 }
 
-func (this *Scavenger) NewLoggerWith(args ...interface{}) Logger {
-	panic("NewLoggerWith is not supported")
-}
-
-func (this *Scavenger) FlushLogger() error {
-	return nil
-}
-
 func NewScavenger(printers ...Printer) (scav *Scavenger) {
 	scav = &Scavenger{}
+	stdLog := log.New(&scav.buf, "", 0)
+	scav.internal = NewConsoleLogger(WithStdLogger(stdLog), WithBareMode())
 	for _, p := range printers {
 		if p != nil {
 			scav.extraPrinters = append(scav.extraPrinters, p)
@@ -45,35 +42,51 @@ func NewScavenger(printers ...Printer) (scav *Scavenger) {
 	return
 }
 
+func (this *Scavenger) NewLoggerWith(args ...interface{}) Logger {
+	var newLogger Scavenger
+	newLogger.internal = *this.internal.NewLoggerWith(args...).(*ConsoleLogger)
+	newLogger.extraPrinters = this.extraPrinters
+	return &newLogger
+}
+
+func (this *Scavenger) FlushLogger() error {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	var firstErr error
+	if err := this.internal.FlushLogger(); err != nil {
+		firstErr = err
+	}
+	for _, printer := range this.extraPrinters {
+		x, ok := printer.(interface {
+			Sync() error
+		})
+		if ok {
+			if err := x.Sync(); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+	}
+	return firstErr
+}
+
+func (this *Scavenger) addEntryImpl(e LogEntry) {
+	e.Message = strings.TrimSuffix(e.Message, "\n")
+	this.entries = append(this.entries, e)
+	for _, p := range this.extraPrinters {
+		p.Print(e.Level, e.Message)
+	}
+}
+
 func (this *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	if len(args) == 1 {
-		msg := fmt.Sprint(args[0])
-		entry := LogEntry{Level: level, Message: msg, Fields: nil}
-		this.entries = append(this.entries, entry)
-		for _, p := range this.extraPrinters {
-			p.Print(level, msg)
-		}
-		return entry
-	}
-
-	var sb strings.Builder
-	for i, arg := range args {
-		switch i {
-		case 0:
-			_, _ = fmt.Fprint(&sb, arg)
-		default:
-			_, _ = fmt.Fprintf(&sb, ", %v", arg)
-		}
-	}
-	msg := sb.String()
-	entry := LogEntry{Level: level, Message: msg, Fields: nil}
-	this.entries = append(this.entries, entry)
-	for _, p := range this.extraPrinters {
-		p.Print(level, msg)
-	}
+	this.buf.Reset()
+	this.internal.println(level, args)
+	str := this.buf.String()
+	entry := LogEntry{Level: level, Message: str}
+	this.addEntryImpl(entry)
 	return entry
 }
 
@@ -97,12 +110,11 @@ func (this *Scavenger) AddEntryf(level string, format string, args []interface{}
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	msg := fmt.Sprintf(format, args...)
-	entry := LogEntry{Level: level, Message: msg, Fields: nil}
-	this.entries = append(this.entries, entry)
-	for _, p := range this.extraPrinters {
-		p.Print(level, msg)
-	}
+	this.buf.Reset()
+	this.internal.printf(level, format, args)
+	str := this.buf.String()
+	entry := LogEntry{Level: level, Message: str}
+	this.addEntryImpl(entry)
 	return entry
 }
 
@@ -391,13 +403,13 @@ func (this *Scavenger) Errorw(msg string, keyVals ...interface{}) {
 }
 
 func (this *Scavenger) AddEntryw(level string, msg string, keyVals ...interface{}) LogEntry {
-	var args = []interface{}{msg}
-	entry := this.AddEntry(level, args)
-	if len(keyVals) >= 2 {
-		entry.Fields = make(map[interface{}]interface{})
-		for i := 0; i < len(keyVals); i++ {
-			entry.Fields[keyVals[i]] = keyVals[i+1]
-		}
-	}
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	this.buf.Reset()
+	this.internal.printw(level, msg, keyVals)
+	str := this.buf.String()
+	entry := LogEntry{Level: level, Message: str}
+	this.addEntryImpl(entry)
 	return entry
 }

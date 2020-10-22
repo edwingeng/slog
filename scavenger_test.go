@@ -1,11 +1,12 @@
 package slog
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestScavenger(t *testing.T) {
-	var scav Scavenger
+	var scav = NewScavenger()
 	scav.Debug("1")
 	scav.Info("it is a good day to die")
 	scav.Warn("3", "c")
@@ -17,7 +18,7 @@ func TestScavenger(t *testing.T) {
 
 	dump := `DEBUG	1
 INFO	it is a good day to die
-WARN	3, c
+WARN	3c
 ERROR	4
 `
 	if scav.Dump() != dump {
@@ -71,7 +72,7 @@ func TestScavenger_FindRegexp_Panic(t *testing.T) {
 }
 
 func TestScavenger_FindSequence(t *testing.T) {
-	var scav Scavenger
+	var scav = NewScavenger()
 	scav.Debug("hello 1")
 	scav.Debug()
 	scav.Info("it is a good day to die")
@@ -176,7 +177,7 @@ func TestScavenger_FindSequence(t *testing.T) {
 }
 
 func TestScavenger_Entries(t *testing.T) {
-	var scav Scavenger
+	var scav = NewScavenger()
 	scav.Debug("hello 1")
 	scav.Info("it is a good day to die")
 	scav.Warn("3", "world 2")
@@ -194,7 +195,7 @@ func TestScavenger_Entries(t *testing.T) {
 }
 
 func TestScavenger_FindUnique(t *testing.T) {
-	var scav Scavenger
+	var scav = NewScavenger()
 	scav.Debugf("%d", 1)
 	scav.Infof("%s", "it is a good day to die")
 	scav.Warnf("%d, %s", 3, "c")
@@ -242,13 +243,13 @@ ERROR	1
 }
 
 func TestScavenger_Filter(t *testing.T) {
-	var scav Scavenger
-	scav.Debugf("%d", 1)
-	scav.Infof("%s", "it is a good day to die")
-	scav.Warnf("%d, %s", 3, "c")
-	scav.Errorf("%d", 4)
-	scav.Warnf("%s", "it is a good day to die")
-	scav.Errorf("%d", 1)
+	var scav = NewScavenger()
+	scav.Debugw(fmt.Sprintf("%d", 1))
+	scav.Infow(fmt.Sprintf("%s", "it is a good day to die"))
+	scav.Warnw(fmt.Sprintf("%d, %s", 3, "c"))
+	scav.Errorw(fmt.Sprintf("%d", 4), "foo", 100)
+	scav.Warnw(fmt.Sprintf("%s", "it is a good day to die"), "dumb")
+	scav.Errorw(fmt.Sprintf("%d", 1), "foo", 100, "bar", "qux")
 
 	newScav := scav.Filter(func(level, msg string) bool {
 		switch msg {
@@ -263,8 +264,8 @@ func TestScavenger_Filter(t *testing.T) {
 
 	dump := `INFO	it is a good day to die
 WARN	3, c
-ERROR	4
-ERROR	1
+ERROR	4	{"foo":100}
+ERROR	1	{"foo":100, "bar":"qux"}
 `
 
 	if newScav.Dump() != dump {

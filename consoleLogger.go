@@ -109,7 +109,6 @@ func (cl ConsoleLogger) outputImpl(buf *bytes.Buffer, written int) {
 		}
 		_, _ = buf.WriteString(cl.fields)
 	}
-	_ = buf.WriteByte('\n')
 	_ = cl.stdLog.Output(0, buf.String())
 }
 
