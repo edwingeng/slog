@@ -272,3 +272,22 @@ ERROR	1	{"foo":100, "bar":"qux"}
 		t.Fatal("something is wrong with Dump")
 	}
 }
+
+func TestScavenger_NewLoggerWith(t *testing.T) {
+	var scav = NewScavenger()
+	scav = scav.NewLoggerWith("hello", "world").(*Scavenger)
+	scav.Debug("it is a good day to die")
+	scav.Infow("it is a good day to die")
+	scav.Warnw("it is a good day to die", "bar", 100)
+
+	dump := `DEBUG	it is a good day to die	{"hello":"world"}
+INFO	it is a good day to die	{"hello":"world"}
+WARN	it is a good day to die	{"hello":"world", "bar":100}
+`
+
+	xxx := scav.Dump()
+	_ = xxx
+	if scav.Dump() != dump {
+		t.Fatal("something is wrong")
+	}
+}

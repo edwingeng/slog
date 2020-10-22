@@ -49,18 +49,22 @@ func (cl ConsoleLogger) NewLoggerWith(args ...interface{}) Logger {
 		return newLogger
 	}
 
-	if len(cl.fields) == 0 {
-		WithFields(args...)(&newLogger)
-		return newLogger
+	newLogger.combineFields(cl.fields, args...)
+	return newLogger
+}
+
+func (this *ConsoleLogger) combineFields(fields string, args ...interface{}) {
+	if len(this.fields) == 0 {
+		WithFields(args...)(this)
+		return
 	}
 
 	var m map[string]interface{}
-	err := json.Unmarshal([]byte(cl.fields), &m)
+	err := json.Unmarshal([]byte(fields), &m)
 	if err != nil {
 		panic(err)
 	}
-	withFieldsImpl(m, args...)(&newLogger)
-	return newLogger
+	withFieldsImpl(m, args...)(this)
 }
 
 func caller(skip int) (string, int, bool) {

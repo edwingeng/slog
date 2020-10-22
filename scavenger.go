@@ -23,7 +23,7 @@ type LogEntry struct {
 
 type Scavenger struct {
 	buf           bytes.Buffer
-	internal      ConsoleLogger
+	logger        ConsoleLogger
 	extraPrinters []Printer
 
 	mu      sync.Mutex
@@ -33,7 +33,7 @@ type Scavenger struct {
 func NewScavenger(printers ...Printer) (scav *Scavenger) {
 	scav = &Scavenger{}
 	stdLog := log.New(&scav.buf, "", 0)
-	scav.internal = NewConsoleLogger(WithStdLogger(stdLog), WithBareMode())
+	scav.logger = NewConsoleLogger(WithStdLogger(stdLog), WithBareMode())
 	for _, p := range printers {
 		if p != nil {
 			scav.extraPrinters = append(scav.extraPrinters, p)
@@ -43,10 +43,9 @@ func NewScavenger(printers ...Printer) (scav *Scavenger) {
 }
 
 func (this *Scavenger) NewLoggerWith(args ...interface{}) Logger {
-	var newLogger Scavenger
-	newLogger.internal = *this.internal.NewLoggerWith(args...).(*ConsoleLogger)
-	newLogger.extraPrinters = this.extraPrinters
-	return &newLogger
+	newScavenger := NewScavenger(this.extraPrinters...)
+	newScavenger.logger.combineFields(this.logger.fields, args...)
+	return newScavenger
 }
 
 func (this *Scavenger) FlushLogger() error {
@@ -54,7 +53,7 @@ func (this *Scavenger) FlushLogger() error {
 	defer this.mu.Unlock()
 
 	var firstErr error
-	if err := this.internal.FlushLogger(); err != nil {
+	if err := this.logger.FlushLogger(); err != nil {
 		firstErr = err
 	}
 	for _, printer := range this.extraPrinters {
@@ -83,7 +82,7 @@ func (this *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
 	defer this.mu.Unlock()
 
 	this.buf.Reset()
-	this.internal.println(level, args)
+	this.logger.println(level, args)
 	str := this.buf.String()
 	entry := LogEntry{Level: level, Message: str}
 	this.addEntryImpl(entry)
@@ -111,7 +110,7 @@ func (this *Scavenger) AddEntryf(level string, format string, args []interface{}
 	defer this.mu.Unlock()
 
 	this.buf.Reset()
-	this.internal.printf(level, format, args)
+	this.logger.printf(level, format, args)
 	str := this.buf.String()
 	entry := LogEntry{Level: level, Message: str}
 	this.addEntryImpl(entry)
@@ -407,7 +406,7 @@ func (this *Scavenger) AddEntryw(level string, msg string, keyVals ...interface{
 	defer this.mu.Unlock()
 
 	this.buf.Reset()
-	this.internal.printw(level, msg, keyVals)
+	this.logger.printw(level, msg, keyVals)
 	str := this.buf.String()
 	entry := LogEntry{Level: level, Message: str}
 	this.addEntryImpl(entry)
