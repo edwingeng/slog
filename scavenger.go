@@ -21,17 +21,23 @@ type LogEntry struct {
 	Message string
 }
 
+type internalObj struct {
+	mu      sync.Mutex
+	entries []LogEntry
+}
+
 type Scavenger struct {
 	buf           bytes.Buffer
 	logger        ConsoleLogger
 	extraPrinters []Printer
 
-	mu      sync.Mutex
-	entries []LogEntry
+	*internalObj
 }
 
 func NewScavenger(printers ...Printer) (scav *Scavenger) {
-	scav = &Scavenger{}
+	scav = &Scavenger{
+		internalObj: &internalObj{},
+	}
 	stdLog := log.New(&scav.buf, "", 0)
 	scav.logger = NewConsoleLogger(WithStdLogger(stdLog), WithBareMode())
 	for _, p := range printers {
@@ -44,6 +50,7 @@ func NewScavenger(printers ...Printer) (scav *Scavenger) {
 
 func (this *Scavenger) NewLoggerWith(args ...interface{}) Logger {
 	newScavenger := NewScavenger(this.extraPrinters...)
+	newScavenger.internalObj = this.internalObj
 	newScavenger.logger.combineFields(this.logger.fields, args...)
 	return newScavenger
 }
