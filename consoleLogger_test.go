@@ -62,8 +62,8 @@ func TestConsoleLogger_Warnw(t *testing.T) {
 	rexMatch(t, LevelWarn, pat1, buf.Bytes())
 
 	resetBuffer(&buf)
-	logger.Warnw("hello", "foo", 100)
-	var pat2 = "hello\t{\"foo\":100}"
+	logger.Warnw("hello <world>", "foo", 100)
+	var pat2 = "hello <world>\t{\"foo\":100}"
 	rexMatch(t, LevelWarn, pat2, buf.Bytes())
 
 	resetBuffer(&buf)

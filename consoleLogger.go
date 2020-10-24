@@ -219,10 +219,7 @@ func (cl ConsoleLogger) printw(level string, msg string, keyVals []interface{}) 
 			}
 			buf.WriteByte('{')
 		}
-		d, err := json.Marshal(keyVals[i+1])
-		if err != nil {
-			panic(err)
-		}
+		d := stringlize(keyVals[i+1])
 		_, _ = fmt.Fprintf(&buf, "%q:%s", fmt.Sprint(keyVals[i]), d)
 	}
 
@@ -232,6 +229,19 @@ func (cl ConsoleLogger) printw(level string, msg string, keyVals []interface{}) 
 
 	_ = buf.WriteByte('\n')
 	_ = cl.stdLog.Output(0, buf.String())
+}
+
+func stringlize(v interface{}) []byte {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err == nil {
+		return bytes.TrimSuffix(buf.Bytes(), []byte("\n"))
+	}
+
+	buf.Reset()
+	_, _ = fmt.Fprintf(&buf, "%+v", v)
+	return buf.Bytes()
 }
 
 func (cl ConsoleLogger) FlushLogger() error {
@@ -304,11 +314,7 @@ func withFieldsImpl(m map[string]interface{}, args ...interface{}) Option {
 		if i > 0 {
 			buf.WriteString(", ")
 		}
-		d, err := json.Marshal(m[a[i]])
-		if err != nil {
-			panic(err)
-		}
-		_, _ = fmt.Fprintf(&buf, "%q:%s", a[i], d)
+		_, _ = fmt.Fprintf(&buf, "%q:%s", a[i], stringlize(m[a[i]]))
 	}
 	buf.WriteByte('}')
 
