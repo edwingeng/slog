@@ -49,14 +49,13 @@ func (cl ConsoleLogger) NewLoggerWith(args ...interface{}) Logger {
 		return newLogger
 	}
 
-	newLogger.combineFields(cl.fields, args...)
+	combineFields(cl.fields, args...)(&newLogger)
 	return newLogger
 }
 
-func (this *ConsoleLogger) combineFields(fields string, args ...interface{}) {
-	if len(this.fields) == 0 {
-		WithFields(args...)(this)
-		return
+func combineFields(fields string, args ...interface{}) Option {
+	if len(fields) == 0 {
+		return WithFields(args...)
 	}
 
 	var m map[string]interface{}
@@ -64,7 +63,7 @@ func (this *ConsoleLogger) combineFields(fields string, args ...interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	withFieldsImpl(m, args...)(this)
+	return withFieldsImpl(m, args...)
 }
 
 func caller(skip int) (string, int, bool) {

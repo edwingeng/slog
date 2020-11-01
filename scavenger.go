@@ -21,7 +21,7 @@ type LogEntry struct {
 	Message string
 }
 
-type internalObj struct {
+type internalData struct {
 	mu      sync.Mutex
 	entries []LogEntry
 }
@@ -31,12 +31,12 @@ type Scavenger struct {
 	logger        ConsoleLogger
 	extraPrinters []Printer
 
-	*internalObj
+	*internalData
 }
 
 func NewScavenger(printers ...Printer) (scav *Scavenger) {
 	scav = &Scavenger{
-		internalObj: &internalObj{},
+		internalData: &internalData{},
 	}
 	stdLog := log.New(&scav.buf, "", 0)
 	scav.logger = NewConsoleLogger(WithStdLogger(stdLog), WithBareMode())
@@ -50,8 +50,8 @@ func NewScavenger(printers ...Printer) (scav *Scavenger) {
 
 func (this *Scavenger) NewLoggerWith(args ...interface{}) Logger {
 	newScavenger := NewScavenger(this.extraPrinters...)
-	newScavenger.internalObj = this.internalObj
-	newScavenger.logger.combineFields(this.logger.fields, args...)
+	newScavenger.internalData = this.internalData
+	combineFields(this.logger.fields, args...)(&newScavenger.logger)
 	return newScavenger
 }
 
