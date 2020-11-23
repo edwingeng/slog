@@ -63,12 +63,12 @@ func TestConsoleLogger_Warnw(t *testing.T) {
 
 	resetBuffer(&buf)
 	logger.Warnw("hello <world>", "foo", 100)
-	var pat2 = "hello <world>\t{\"foo\":100}"
+	var pat2 = "hello <world>\t{\"foo\": 100}"
 	rexMatch(t, LevelWarn, pat2, buf.Bytes())
 
 	resetBuffer(&buf)
 	logger.Warnw("hello", "foo", 100, "bar", "qux")
-	var pat3 = "hello\t{\"foo\":100, \"bar\":\"qux\"}"
+	var pat3 = "hello\t{\"foo\": 100, \"bar\": \"qux\"}"
 	rexMatch(t, LevelWarn, pat3, buf.Bytes())
 
 	resetBuffer(&buf)
@@ -82,7 +82,7 @@ func TestWithFields(t *testing.T) {
 	stdLog := log.New(&buf, "", log.Ltime)
 	logger := NewConsoleLogger(WithStdLogger(stdLog), WithFields("foo", 100, "bar"))
 	logger.Error("hello")
-	var pat1 = "hello\t{\"foo\":100}"
+	var pat1 = "hello\t{\"foo\": 100}"
 	rexMatch(t, LevelError, pat1, buf.Bytes())
 	resetBuffer(&buf)
 	logger.Errorf("%s", "hello")
@@ -93,7 +93,7 @@ func TestWithFields(t *testing.T) {
 
 	resetBuffer(&buf)
 	logger.Errorw("hello", "bar", "qux", "spare")
-	var pat2 = "hello\t{\"foo\":100, \"bar\":\"qux\"}"
+	var pat2 = "hello\t{\"foo\": 100, \"bar\": \"qux\"}"
 	rexMatch(t, LevelError, pat2, buf.Bytes())
 }
 
@@ -160,18 +160,18 @@ func TestConsoleLogger_NewLoggerWith(t *testing.T) {
 	rexMatch(t, LevelInfo, pat1, buf.Bytes())
 	resetBuffer(&buf)
 	x2.Info("hello")
-	pat2 := "hello\t{\"foo\":100}"
+	pat2 := "hello\t{\"foo\": 100}"
 	rexMatch(t, LevelInfo, pat2, buf.Bytes())
 
 	resetBuffer(&buf)
 	x3 := NewConsoleLogger(WithStdLogger(stdLog), WithFields("bar", "qux"))
 	x4 := x3.NewLoggerWith("foo", 100)
 	x3.Info("hello")
-	pat3 := "hello\t{\"bar\":\"qux\"}"
+	pat3 := "hello\t{\"bar\": \"qux\"}"
 	rexMatch(t, LevelInfo, pat3, buf.Bytes())
 	resetBuffer(&buf)
 	x4.Info("hello")
-	pat4 := "hello\t{\"bar\":\"qux\", \"foo\":100}"
+	pat4 := "hello\t{\"bar\": \"qux\", \"foo\": 100}"
 	rexMatch(t, LevelInfo, pat4, buf.Bytes())
 }
 
@@ -199,7 +199,7 @@ func TestConsoleLogger_bare(t *testing.T) {
 
 	buf.Reset()
 	x1.Errorw("hello", "foo", 100)
-	if buf.String() != "hello\t{\"foo\":100}\n" {
+	if buf.String() != "hello\t{\"foo\": 100}\n" {
 		t.Fatal("bare: unexpected output")
 	}
 }

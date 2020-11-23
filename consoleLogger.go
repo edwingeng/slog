@@ -219,7 +219,7 @@ func (cl ConsoleLogger) printw(level string, msg string, keyVals []interface{}) 
 			buf.WriteByte('{')
 		}
 		d := stringlize(keyVals[i+1])
-		_, _ = fmt.Fprintf(&buf, "%q:%s", fmt.Sprint(keyVals[i]), d)
+		_, _ = fmt.Fprintf(&buf, "%q: %s", fmt.Sprint(keyVals[i]), d)
 	}
 
 	if fLen > 0 || n > 1 {
@@ -313,7 +313,7 @@ func withFieldsImpl(m map[string]interface{}, args ...interface{}) Option {
 		if i > 0 {
 			buf.WriteString(", ")
 		}
-		_, _ = fmt.Fprintf(&buf, "%q:%s", a[i], stringlize(m[a[i]]))
+		_, _ = fmt.Fprintf(&buf, "%q: %s", a[i], stringlize(m[a[i]]))
 	}
 	buf.WriteByte('}')
 

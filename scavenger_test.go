@@ -264,8 +264,8 @@ func TestScavenger_Filter(t *testing.T) {
 
 	dump := `INFO	it is a good day to die
 WARN	3, c
-ERROR	4	{"foo":100}
-ERROR	1	{"foo":100, "bar":"qux"}
+ERROR	4	{"foo": 100}
+ERROR	1	{"foo": 100, "bar": "qux"}
 `
 
 	if newScav.Dump() != dump {
@@ -280,9 +280,9 @@ func TestScavenger_NewLoggerWith(t *testing.T) {
 	scav2.Infow("it is a good day to die")
 	scav2.Warnw("it is a good day to die", "bar", 100)
 
-	dump := `DEBUG	it is a good day to die	{"hello":"world"}
-INFO	it is a good day to die	{"hello":"world"}
-WARN	it is a good day to die	{"hello":"world", "bar":100}
+	dump := `DEBUG	it is a good day to die	{"hello": "world"}
+INFO	it is a good day to die	{"hello": "world"}
+WARN	it is a good day to die	{"hello": "world", "bar": 100}
 `
 	if scav2.Dump() != dump {
 		t.Fatal("something is wrong [scav2]")
