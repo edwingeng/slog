@@ -33,7 +33,7 @@ type ConsoleLogger struct {
 
 func NewConsoleLogger(opts ...Option) ConsoleLogger {
 	var cl ConsoleLogger
-	cl.stdLog = log.New(os.Stderr, "", log.LstdFlags)
+	cl.stdLog = log.New(os.Stderr, "", log.Ltime)
 	for _, opt := range opts {
 		opt(&cl)
 	}
