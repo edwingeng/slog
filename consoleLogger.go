@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 const (
@@ -19,11 +21,27 @@ const (
 	LevelError = "ERROR"
 )
 
+var (
+	clrDebug = color.New(color.FgMagenta, color.Faint).Sprint(LevelDebug)
+	clrInfo  = color.New(color.FgGreen, color.Faint).Sprint(LevelInfo)
+	clrWarn  = color.New(color.FgYellow).Sprint(LevelWarn)
+	clrError = color.New(color.FgRed).Sprint(LevelError)
+	clrGray  = color.New(color.FgWhite, color.Faint)
+)
+
+type workingMode int8
+
+const (
+	modeColored workingMode = iota
+	modeWithoutColor
+	modeBare
+)
+
 type ConsoleLogger struct {
 	stdLog *log.Logger
 
 	extraSkip    int
-	bare         bool
+	mode         workingMode
 	disableDebug bool
 	disableInfo  bool
 	disableWarn  bool
@@ -37,7 +55,7 @@ func NewConsoleLogger(opts ...Option) ConsoleLogger {
 	for _, opt := range opts {
 		opt(&cl)
 	}
-	if cl.bare {
+	if cl.mode == modeBare {
 		cl.stdLog.SetFlags(0)
 	}
 	return cl
@@ -78,19 +96,42 @@ func caller(skip int) (string, int, bool) {
 
 func (cl ConsoleLogger) buildHeader(level string) bytes.Buffer {
 	var buf bytes.Buffer
-	if cl.bare {
+	if cl.mode == modeBare {
 		return buf
 	}
 
 	file, line, ok := caller(3 + cl.extraSkip)
-	buf.WriteString(level)
+	if cl.mode == modeColored {
+		switch level[0] {
+		case 'D':
+			buf.WriteString(clrDebug)
+		case 'I':
+			buf.WriteString(clrInfo)
+		case 'W':
+			buf.WriteString(clrWarn)
+		case 'E':
+			buf.WriteString(clrError)
+		default:
+			buf.WriteString(level)
+		}
+	} else {
+		buf.WriteString(level)
+	}
 	if len(level) == 4 {
 		_ = buf.WriteByte(' ')
 	}
 	if ok && file != "" {
-		_, _ = fmt.Fprintf(&buf, " %s:%d\t", file, line)
+		if cl.mode == modeColored {
+			_, _ = clrGray.Fprintf(&buf, " %s:%d\t", file, line)
+		} else {
+			_, _ = fmt.Fprintf(&buf, " %s:%d\t", file, line)
+		}
 	} else {
-		_, _ = buf.WriteString(" ?\t")
+		if cl.mode == modeColored {
+			_, _ = clrGray.Fprint(&buf, " ?\t")
+		} else {
+			_, _ = buf.WriteString(" ?\t")
+		}
 	}
 	return buf
 }
@@ -324,6 +365,15 @@ func withFieldsImpl(m map[string]interface{}, args ...interface{}) Option {
 
 func WithBareMode() Option {
 	return func(cl *ConsoleLogger) {
-		cl.bare = true
+		cl.mode = modeBare
+	}
+}
+
+func WithoutColor() Option {
+	return func(cl *ConsoleLogger) {
+		if cl.mode == modeBare {
+			return
+		}
+		cl.mode = modeWithoutColor
 	}
 }
