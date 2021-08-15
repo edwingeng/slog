@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -61,19 +64,19 @@ func NewConsoleLogger(opts ...Option) ConsoleLogger {
 	return cl
 }
 
-func (cl ConsoleLogger) NewLoggerWith(args ...interface{}) Logger {
+func (cl ConsoleLogger) NewLoggerWith(keyVals ...interface{}) Logger {
 	newLogger := cl
-	if len(args) == 0 {
+	if len(keyVals) == 0 {
 		return newLogger
 	}
 
-	combineFields(cl.fields, args...)(&newLogger)
+	combineFields(cl.fields, keyVals...)(&newLogger)
 	return newLogger
 }
 
-func combineFields(fields string, args ...interface{}) Option {
+func combineFields(fields string, keyVals ...interface{}) Option {
 	if len(fields) == 0 {
-		return WithFields(args...)
+		return WithFields(keyVals...)
 	}
 
 	var m map[string]interface{}
@@ -81,7 +84,7 @@ func combineFields(fields string, args ...interface{}) Option {
 	if err != nil {
 		panic(err)
 	}
-	return withFieldsImpl(m, args...)
+	return withFieldsImpl(m, keyVals...)
 }
 
 func caller(skip int) (string, int, bool) {
@@ -247,7 +250,8 @@ func (cl ConsoleLogger) printw(level string, msg string, keyVals []interface{}) 
 		_, _ = buf.WriteString(cl.fields[:fLen-1])
 	}
 
-	n := len(keyVals)
+	kvs := replaceZapFields(keyVals)
+	n := len(kvs)
 	for i := 0; i < n-1; i += 2 {
 		if i > 0 {
 			_, _ = buf.WriteString(", ")
@@ -259,8 +263,8 @@ func (cl ConsoleLogger) printw(level string, msg string, keyVals []interface{}) 
 			}
 			buf.WriteByte('{')
 		}
-		d := stringlize(keyVals[i+1])
-		_, _ = fmt.Fprintf(&buf, "%q: %s", fmt.Sprint(keyVals[i]), d)
+		d := stringlize(kvs[i+1])
+		_, _ = fmt.Fprintf(&buf, "%q: %s", fmt.Sprint(kvs[i]), d)
 	}
 
 	if fLen > 0 || n > 1 {
@@ -271,17 +275,43 @@ func (cl ConsoleLogger) printw(level string, msg string, keyVals []interface{}) 
 	_ = cl.stdLog.Output(0, buf.String())
 }
 
-func stringlize(v interface{}) []byte {
+func stringlize(v interface{}) string {
+	switch x := v.(type) {
+	case string:
+		return strconv.Quote(x)
+	case int, int8, int16, int32, int64:
+		return fmt.Sprint(v)
+	case uint, uint8, uint16, uint32, uint64:
+		return fmt.Sprint(v)
+	case float32, float64:
+		return fmt.Sprint(v)
+	case bool:
+		return fmt.Sprint(v)
+	case uintptr:
+		return fmt.Sprintf("%#x", v)
+	}
+
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
-	if err := enc.Encode(v); err == nil {
-		return bytes.TrimSuffix(buf.Bytes(), []byte("\n"))
+	err := enc.Encode(v)
+	if err != nil {
+		buf.Reset()
+		_, _ = fmt.Fprintf(&buf, "%+v", v)
+		return buf.String()
 	}
 
-	buf.Reset()
-	_, _ = fmt.Fprintf(&buf, "%+v", v)
-	return buf.Bytes()
+	data := buf.Bytes()
+	n1 := len(data)
+	if n1 >= 2 {
+		if data[0] == '"' {
+			n2 := n1 - 1
+			if data[n2] == '"' {
+				return string(data[1:n2])
+			}
+		}
+	}
+	return string(data)
 }
 
 func (cl ConsoleLogger) FlushLogger() error {
@@ -327,14 +357,15 @@ func WithStdLogger(stdLog *log.Logger) Option {
 	}
 }
 
-func WithFields(args ...interface{}) Option {
-	return withFieldsImpl(make(map[string]interface{}), args...)
+func WithFields(keyVals ...interface{}) Option {
+	return withFieldsImpl(make(map[string]interface{}), keyVals...)
 }
 
-func withFieldsImpl(m map[string]interface{}, args ...interface{}) Option {
-	for i := 0; i < len(args)-1; i += 2 {
-		k := fmt.Sprint(args[i])
-		m[k] = args[i+1]
+func withFieldsImpl(m map[string]interface{}, keyVals ...interface{}) Option {
+	keyVals = replaceZapFields(keyVals)
+	for i := 0; i < len(keyVals)-1; i += 2 {
+		k := fmt.Sprint(keyVals[i])
+		m[k] = keyVals[i+1]
 	}
 	if len(m) == 0 {
 		return func(cl *ConsoleLogger) {
@@ -361,6 +392,21 @@ func withFieldsImpl(m map[string]interface{}, args ...interface{}) Option {
 	return func(cl *ConsoleLogger) {
 		cl.fields = buf.String()
 	}
+}
+
+func replaceZapFields(keyVals []interface{}) []interface{} {
+	var a []interface{}
+	for i, n := 0, len(keyVals); i < n; i++ {
+		if f, ok := keyVals[i].(zap.Field); ok {
+			encoder := zapcore.NewMapObjectEncoder()
+			f.AddTo(encoder)
+			a = append(a, f.Key, encoder.Fields[f.Key])
+		} else if i+1 < n {
+			a = append(a, keyVals[i], keyVals[i+1])
+			i++
+		}
+	}
+	return a
 }
 
 func WithBareMode() Option {

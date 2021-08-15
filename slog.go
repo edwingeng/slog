@@ -1,7 +1,7 @@
 package slog
 
 type Logger interface {
-	NewLoggerWith(args ...interface{}) Logger
+	NewLoggerWith(keyVals ...interface{}) Logger
 
 	Debug(args ...interface{})
 	Info(args ...interface{})

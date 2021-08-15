@@ -48,10 +48,10 @@ func NewScavenger(printers ...Printer) (scav *Scavenger) {
 	return
 }
 
-func (this *Scavenger) NewLoggerWith(args ...interface{}) Logger {
+func (this *Scavenger) NewLoggerWith(keyVals ...interface{}) Logger {
 	newScavenger := NewScavenger(this.extraPrinters...)
 	newScavenger.internalData = this.internalData
-	combineFields(this.logger.fields, args...)(&newScavenger.logger)
+	combineFields(this.logger.fields, keyVals...)(&newScavenger.logger)
 	return newScavenger
 }
 

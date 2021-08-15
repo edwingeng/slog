@@ -6,7 +6,7 @@ func NewDumbLogger() DumbLogger {
 	return DumbLogger{}
 }
 
-func (DumbLogger) NewLoggerWith(args ...interface{}) Logger {
+func (DumbLogger) NewLoggerWith(keyVals ...interface{}) Logger {
 	return DumbLogger{}
 }
 
