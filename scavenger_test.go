@@ -2,6 +2,7 @@ package slog
 
 import (
 	"fmt"
+	"math"
 	"testing"
 )
 
@@ -275,17 +276,18 @@ ERROR	1	{"foo": 100, "bar": "qux"}
 
 func TestScavenger_NewLoggerWith(t *testing.T) {
 	var scav1 = NewScavenger()
-	scav2 := scav1.NewLoggerWith("hello", "world").(*Scavenger)
-	scav2.Debug("it is a good day to die")
-	scav2.Infow("it is a good day to die")
-	scav2.Warnw("it is a good day to die", "bar", 100)
+	scav2 := scav1.NewLoggerWith("hello", "world", "x1", math.MaxInt64).(*Scavenger)
+	scav3 := scav2.NewLoggerWith("hello", "world", "x2", math.MaxInt64).(*Scavenger)
+	scav3.Debug("it is a good day to die")
+	scav3.Infow("it is a good day to die")
+	scav3.Warnw("it is a good day to die", "bar", 100)
 
-	dump := `DEBUG	it is a good day to die	{"hello": "world"}
-INFO	it is a good day to die	{"hello": "world"}
-WARN	it is a good day to die	{"hello": "world", "bar": 100}
+	dump := `DEBUG	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "x2": 9223372036854775807}
+INFO	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "x2": 9223372036854775807}
+WARN	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "x2": 9223372036854775807, "bar": 100}
 `
-	if scav2.Dump() != dump {
-		t.Fatal("something is wrong [scav2]")
+	if scav3.Dump() != dump {
+		t.Fatal("something is wrong [scav3]")
 	}
 	if scav1.Dump() != dump {
 		t.Fatal("something is wrong [scav1]")

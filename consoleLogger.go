@@ -79,8 +79,10 @@ func combineFields(fields string, keyVals ...interface{}) Option {
 		return WithFields(keyVals...)
 	}
 
+	decoder := json.NewDecoder(strings.NewReader(fields))
+	decoder.UseNumber()
 	var m map[string]interface{}
-	err := json.Unmarshal([]byte(fields), &m)
+	err := decoder.Decode(&m)
 	if err != nil {
 		panic(err)
 	}
@@ -279,6 +281,8 @@ func stringlize(v interface{}) string {
 	switch x := v.(type) {
 	case string:
 		return strconv.Quote(x)
+	case json.Number:
+		return string(x)
 	case int, int8, int16, int32, int64:
 		return fmt.Sprint(v)
 	case uint, uint8, uint16, uint32, uint64:
