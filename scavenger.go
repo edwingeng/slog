@@ -419,3 +419,18 @@ func (this *Scavenger) AddEntryw(level string, msg string, keyVals ...interface{
 	this.addEntryImpl(entry)
 	return entry
 }
+
+func (this *Scavenger) Exists(str string) bool {
+	_, _, ok := this.Find(str)
+	return ok
+}
+
+func (this *Scavenger) SequenceExists(a []string) bool {
+	_, ok := this.FindSequence(a)
+	return ok
+}
+
+func (this *Scavenger) UniqueExists(str string) bool {
+	_, _, ok := this.FindUnique(str)
+	return ok
+}
