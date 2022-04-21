@@ -28,7 +28,7 @@ type internalData struct {
 
 type Scavenger struct {
 	buf           bytes.Buffer
-	logger        ConsoleLogger
+	logger        *ConsoleLogger
 	extraPrinters []Printer
 
 	*internalData
@@ -51,7 +51,7 @@ func NewScavenger(printers ...Printer) (scav *Scavenger) {
 func (this *Scavenger) NewLoggerWith(keyVals ...interface{}) Logger {
 	newScavenger := NewScavenger(this.extraPrinters...)
 	newScavenger.internalData = this.internalData
-	combineFields(this.logger.fields, keyVals...)(&newScavenger.logger)
+	combineFields(this.logger.fields, keyVals...).fn(newScavenger.logger)
 	return newScavenger
 }
 
