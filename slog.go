@@ -8,10 +8,10 @@ type Logger interface {
 	Warn(args ...interface{})
 	Error(args ...interface{})
 
-	Debugf(template string, args ...interface{})
-	Infof(template string, args ...interface{})
-	Warnf(template string, args ...interface{})
-	Errorf(template string, args ...interface{})
+	Debugf(format string, args ...interface{})
+	Infof(format string, args ...interface{})
+	Warnf(format string, args ...interface{})
+	Errorf(format string, args ...interface{})
 
 	Debugw(msg string, keyVals ...interface{})
 	Infow(msg string, keyVals ...interface{})
