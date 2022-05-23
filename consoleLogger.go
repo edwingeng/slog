@@ -39,6 +39,7 @@ const (
 	modeBare
 )
 
+// ConsoleLogger is a simple console logger that implements the Logger interface.
 type ConsoleLogger struct {
 	stdLog *log.Logger
 
@@ -51,6 +52,7 @@ type ConsoleLogger struct {
 	fields string
 }
 
+// NewConsoleLogger creates a new ConsoleLogger.
 func NewConsoleLogger(opts ...Option) *ConsoleLogger {
 	var cl ConsoleLogger
 	cl.stdLog = log.New(os.Stderr, "", log.Ltime)
@@ -149,10 +151,7 @@ func (cl *ConsoleLogger) println(level string, args []interface{}) {
 	}
 
 	buf := cl.buildHeader(level, 0)
-	written, _ := fmt.Fprintln(&buf, args...)
-	newLen := buf.Len() - 1
-	buf.Truncate(newLen)
-	written--
+	written, _ := fmt.Fprint(&buf, args...)
 	cl.outputImpl(&buf, written)
 }
 
@@ -219,6 +218,7 @@ func (cl *ConsoleLogger) Errorf(format string, args ...interface{}) {
 	cl.printf(LevelError, format, args)
 }
 
+// Print implements the Printer interface.
 func (cl *ConsoleLogger) Print(level, msg string) {
 	switch level[0] {
 	case 'D':
@@ -345,11 +345,14 @@ func (cl *ConsoleLogger) FlushLogger() error {
 	return nil
 }
 
+// Option works for ConsoleLogger only.
 type Option struct {
 	priority int
 	fn       func(cl *ConsoleLogger)
 }
 
+// WithExtraCallerSkip sets the extra number of frames to skip from the
+// top of the stacktrace.
 func WithExtraCallerSkip(extraSkip int) Option {
 	return Option{
 		fn: func(cl *ConsoleLogger) {
@@ -358,6 +361,8 @@ func WithExtraCallerSkip(extraSkip int) Option {
 	}
 }
 
+// WithLevel sets the lowest message level to output, which must be LevelDebug,
+// LevelInfo, LevelWarn or LevelError.
 func WithLevel(level string) Option {
 	return Option{
 		fn: func(cl *ConsoleLogger) {
@@ -376,6 +381,7 @@ func WithLevel(level string) Option {
 	}
 }
 
+// WithStdLogger sets the internal log.Logger.
 func WithStdLogger(stdLog *log.Logger) Option {
 	return Option{
 		fn: func(cl *ConsoleLogger) {
@@ -385,6 +391,7 @@ func WithStdLogger(stdLog *log.Logger) Option {
 	}
 }
 
+// WithFields adds a variadic number of fields to the logging context.
 func WithFields(keyVals ...interface{}) Option {
 	return withFieldsImpl(make(map[string]interface{}), keyVals...)
 }
@@ -441,6 +448,7 @@ func replaceZapFields(keyVals []interface{}) []interface{} {
 	return a
 }
 
+// WithBareMode removes time, level and stacktrace from log entries.
 func WithBareMode() Option {
 	return Option{
 		priority: 2,
@@ -451,6 +459,7 @@ func WithBareMode() Option {
 	}
 }
 
+// WithoutColor disables the color of log entries.
 func WithoutColor() Option {
 	return Option{
 		priority: 1,

@@ -1,7 +1,9 @@
 package slog
 
+// DumbLogger devours all log messages and outputs nothing.
 type DumbLogger struct{}
 
+// NewDumbLogger creates a new DumbLogger.
 func NewDumbLogger() DumbLogger {
 	return DumbLogger{}
 }

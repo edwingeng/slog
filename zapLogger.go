@@ -1,15 +1,20 @@
 package slog
 
-import "go.uber.org/zap"
+import (
+	"go.uber.org/zap"
+)
 
+// ZapLogger is a wrapper of *zap.SugaredLogger.
 type ZapLogger struct {
 	x *zap.SugaredLogger
 }
 
+// NewZapLogger creates a new ZapLogger.
 func NewZapLogger(zsl *zap.SugaredLogger) ZapLogger {
 	return ZapLogger{x: zsl}
 }
 
+// Zap returns the internal *zap.SugaredLogger to the caller.
 func (zl ZapLogger) Zap() *zap.SugaredLogger {
 	return zl.x
 }

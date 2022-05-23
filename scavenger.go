@@ -24,6 +24,7 @@ type internalData struct {
 	entries []LogEntry
 }
 
+// Scavenger collects all log messages for later queries.
 type Scavenger struct {
 	logger        *ConsoleLogger
 	extraPrinters []Printer
@@ -32,6 +33,7 @@ type Scavenger struct {
 	buf bytes.Buffer
 }
 
+// NewScavenger creates a new Scavenger.
 func NewScavenger(printers ...Printer) *Scavenger {
 	return newScavengerImpl(&internalData{}, printers)
 }
@@ -82,6 +84,7 @@ func (sc *Scavenger) addEntryImpl(e LogEntry) {
 	}
 }
 
+// AddEntry adds a new log entry with the help of fmt.Sprint.
 func (sc *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
@@ -110,6 +113,7 @@ func (sc *Scavenger) Error(args ...interface{}) {
 	sc.AddEntry(LevelError, args)
 }
 
+// AddEntryf adds a new log entry with the help of fmt.Sprintf.
 func (sc *Scavenger) AddEntryf(level string, format string, args []interface{}) LogEntry {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
@@ -138,6 +142,7 @@ func (sc *Scavenger) Errorf(format string, args ...interface{}) {
 	sc.AddEntryf(LevelError, format, args)
 }
 
+// AddEntryw adds a new log entry. The variadic key-value pairs are treated as they are in NewLoggerWith.
 func (sc *Scavenger) AddEntryw(level string, msg string, keyVals ...interface{}) LogEntry {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
@@ -166,16 +171,19 @@ func (sc *Scavenger) Errorw(msg string, keyVals ...interface{}) {
 	sc.AddEntryw(LevelError, msg, keyVals...)
 }
 
+// Reset clears all collected messages.
 func (sc *Scavenger) Reset() {
 	sc.mu.Lock()
 	sc.entries = nil
 	sc.mu.Unlock()
 }
 
+// Finder returns a MessageFinder.
 func (sc *Scavenger) Finder() *MessageFinder {
 	return (*MessageFinder)(sc)
 }
 
+// Entries returns a duplicate of the collected messages.
 func (sc *Scavenger) Entries() []LogEntry {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
@@ -185,6 +193,7 @@ func (sc *Scavenger) Entries() []LogEntry {
 	return clone
 }
 
+// Len returns the number of the collected messages.
 func (sc *Scavenger) Len() int {
 	sc.mu.Lock()
 	n := len(sc.entries)
@@ -192,6 +201,7 @@ func (sc *Scavenger) Len() int {
 	return n
 }
 
+// Dump returns a string that contains all the collected messages.
 func (sc *Scavenger) Dump() string {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
@@ -203,6 +213,7 @@ func (sc *Scavenger) Dump() string {
 	return sb.String()
 }
 
+// Filter creates a new Scavenger that contains only the log messages satisfying the predicate fn.
 func (sc *Scavenger) Filter(fn func(level, msg string) bool) *Scavenger {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
@@ -217,46 +228,58 @@ func (sc *Scavenger) Filter(fn func(level, msg string) bool) *Scavenger {
 	return scav
 }
 
+// StringExists returns whether any collected message contains str.
 func (sc *Scavenger) StringExists(str string) (yes bool) {
 	_, _, yes = sc.Finder().FindString(str)
 	return
 }
 
+// UniqueStringExists returns whether one and only one collected message contains str.
 func (sc *Scavenger) UniqueStringExists(str string) (yes bool) {
 	_, _, yes = sc.Finder().FindUniqueString(str)
 	return
 }
 
+// StringSequenceExists returns whether the collected messages contain the specified sequence.
 func (sc *Scavenger) StringSequenceExists(a []string) (yes bool) {
 	_, yes = sc.Finder().FindStringSequence(a)
 	return
 }
 
-func (sc *Scavenger) RegexpExists(str string) (yes bool) {
-	_, _, yes = sc.Finder().FindRegexp(str)
+// RegexpExists returns whether any collected message contains the regular expression pat.
+func (sc *Scavenger) RegexpExists(pat string) (yes bool) {
+	_, _, yes = sc.Finder().FindRegexp(pat)
 	return
 }
 
-func (sc *Scavenger) UniqueRegexpExists(str string) (yes bool) {
-	_, _, yes = sc.Finder().FindUniqueRegexp(str)
+// UniqueRegexpExists returns whether one and only one collected message contains the regular expression pat.
+func (sc *Scavenger) UniqueRegexpExists(pat string) (yes bool) {
+	_, _, yes = sc.Finder().FindUniqueRegexp(pat)
 	return
 }
 
+// RegexpSequenceExists returns whether the collected messages contain the specified regular expression sequence.
 func (sc *Scavenger) RegexpSequenceExists(a []string) (yes bool) {
 	_, yes = sc.Finder().FindRegexpSequence(a)
 	return
 }
 
+// Exists returns whether any collected message contains str.
+// If str starts with "rex: ", it is regarded as a regular expression.
 func (sc *Scavenger) Exists(str string) (yes bool) {
 	_, _, yes = sc.Finder().Find(str)
 	return
 }
 
+// UniqueExists returns whether one and only one collected message contains str.
+// If str starts with "rex: ", it is regarded as a regular expression.
 func (sc *Scavenger) UniqueExists(str string) (yes bool) {
 	_, _, yes = sc.Finder().FindUnique(str)
 	return
 }
 
+// SequenceExists returns whether the collected messages contain the specified sequence.
+// If a string in a starts with "rex: ", it is regarded as a regular expression.
 func (sc *Scavenger) SequenceExists(a []string) (yes bool) {
 	_, yes = sc.Finder().FindSequence(a)
 	return

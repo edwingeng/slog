@@ -21,7 +21,7 @@ func TestScavenger_Exists(t *testing.T) {
 
 	dump := `DEBUG	1
 INFO	it is a good day to die
-WARN	3 c
+WARN	3c
 ERROR	4
 `
 	if sc.Dump() != dump {
