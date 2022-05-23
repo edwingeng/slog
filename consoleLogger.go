@@ -149,7 +149,10 @@ func (cl *ConsoleLogger) println(level string, args []interface{}) {
 	}
 
 	buf := cl.buildHeader(level, 0)
-	written, _ := fmt.Fprint(&buf, args...)
+	written, _ := fmt.Fprintln(&buf, args...)
+	newLen := buf.Len() - 1
+	buf.Truncate(newLen)
+	written--
 	cl.outputImpl(&buf, written)
 }
 

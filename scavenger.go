@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 	"sync"
-	"unicode"
 )
 
 const rexPrefix = "rex:"
@@ -27,43 +25,44 @@ type internalData struct {
 }
 
 type Scavenger struct {
-	buf           bytes.Buffer
 	logger        *ConsoleLogger
 	extraPrinters []Printer
 
 	*internalData
+	buf bytes.Buffer
 }
 
-func NewScavenger(printers ...Printer) (scav *Scavenger) {
-	scav = &Scavenger{
-		internalData: &internalData{},
-	}
-	stdLog := log.New(&scav.buf, "", 0)
-	scav.logger = NewConsoleLogger(WithStdLogger(stdLog), WithBareMode())
+func NewScavenger(printers ...Printer) *Scavenger {
+	return newScavengerImpl(&internalData{}, printers)
+}
+
+func newScavengerImpl(data *internalData, printers []Printer) *Scavenger {
+	sc := &Scavenger{internalData: data}
+	stdLog := log.New(&sc.buf, "", 0)
+	sc.logger = NewConsoleLogger(WithStdLogger(stdLog), WithBareMode())
 	for _, p := range printers {
 		if p != nil {
-			scav.extraPrinters = append(scav.extraPrinters, p)
+			sc.extraPrinters = append(sc.extraPrinters, p)
 		}
 	}
-	return
+	return sc
 }
 
-func (this *Scavenger) NewLoggerWith(keyVals ...interface{}) Logger {
-	newScavenger := NewScavenger(this.extraPrinters...)
-	newScavenger.internalData = this.internalData
-	combineFields(this.logger.fields, keyVals...).fn(newScavenger.logger)
-	return newScavenger
+func (sc *Scavenger) NewLoggerWith(keyVals ...interface{}) Logger {
+	scav := newScavengerImpl(sc.internalData, sc.extraPrinters)
+	combineFields(sc.logger.fields, keyVals...).fn(scav.logger)
+	return scav
 }
 
-func (this *Scavenger) FlushLogger() error {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+func (sc *Scavenger) FlushLogger() error {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 
 	var firstErr error
-	if err := this.logger.FlushLogger(); err != nil {
+	if err := sc.logger.FlushLogger(); err != nil {
 		firstErr = err
 	}
-	for _, printer := range this.extraPrinters {
+	for _, printer := range sc.extraPrinters {
 		x, ok := printer.(interface {
 			Sync() error
 		})
@@ -76,361 +75,189 @@ func (this *Scavenger) FlushLogger() error {
 	return firstErr
 }
 
-func (this *Scavenger) addEntryImpl(e LogEntry) {
-	e.Message = strings.TrimSuffix(e.Message, "\n")
-	this.entries = append(this.entries, e)
-	for _, p := range this.extraPrinters {
+func (sc *Scavenger) addEntryImpl(e LogEntry) {
+	sc.entries = append(sc.entries, e)
+	for _, p := range sc.extraPrinters {
 		p.Print(e.Level, e.Message)
 	}
 }
 
-func (this *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+func (sc *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 
-	this.buf.Reset()
-	this.logger.println(level, args)
-	str := this.buf.String()
+	sc.buf.Reset()
+	sc.logger.println(level, args)
+	str := strings.TrimRight(sc.buf.String(), "\n")
 	entry := LogEntry{Level: level, Message: str}
-	this.addEntryImpl(entry)
+	sc.addEntryImpl(entry)
 	return entry
 }
 
-func (this *Scavenger) Debug(args ...interface{}) {
-	this.AddEntry(LevelDebug, args)
+func (sc *Scavenger) Debug(args ...interface{}) {
+	sc.AddEntry(LevelDebug, args)
 }
 
-func (this *Scavenger) Info(args ...interface{}) {
-	this.AddEntry(LevelInfo, args)
+func (sc *Scavenger) Info(args ...interface{}) {
+	sc.AddEntry(LevelInfo, args)
 }
 
-func (this *Scavenger) Warn(args ...interface{}) {
-	this.AddEntry(LevelWarn, args)
+func (sc *Scavenger) Warn(args ...interface{}) {
+	sc.AddEntry(LevelWarn, args)
 }
 
-func (this *Scavenger) Error(args ...interface{}) {
-	this.AddEntry(LevelError, args)
+func (sc *Scavenger) Error(args ...interface{}) {
+	sc.AddEntry(LevelError, args)
 }
 
-func (this *Scavenger) AddEntryf(level string, format string, args []interface{}) LogEntry {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+func (sc *Scavenger) AddEntryf(level string, format string, args []interface{}) LogEntry {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 
-	this.buf.Reset()
-	this.logger.printf(level, format, args)
-	str := this.buf.String()
+	sc.buf.Reset()
+	sc.logger.printf(level, format, args)
+	str := strings.TrimRight(sc.buf.String(), "\n")
 	entry := LogEntry{Level: level, Message: str}
-	this.addEntryImpl(entry)
+	sc.addEntryImpl(entry)
 	return entry
 }
 
-func (this *Scavenger) Debugf(format string, args ...interface{}) {
-	this.AddEntryf(LevelDebug, format, args)
+func (sc *Scavenger) Debugf(format string, args ...interface{}) {
+	sc.AddEntryf(LevelDebug, format, args)
 }
 
-func (this *Scavenger) Infof(format string, args ...interface{}) {
-	this.AddEntryf(LevelInfo, format, args)
+func (sc *Scavenger) Infof(format string, args ...interface{}) {
+	sc.AddEntryf(LevelInfo, format, args)
 }
 
-func (this *Scavenger) Warnf(format string, args ...interface{}) {
-	this.AddEntryf(LevelWarn, format, args)
+func (sc *Scavenger) Warnf(format string, args ...interface{}) {
+	sc.AddEntryf(LevelWarn, format, args)
 }
 
-func (this *Scavenger) Errorf(format string, args ...interface{}) {
-	this.AddEntryf(LevelError, format, args)
+func (sc *Scavenger) Errorf(format string, args ...interface{}) {
+	sc.AddEntryf(LevelError, format, args)
 }
 
-func (this *Scavenger) Reset() {
-	this.mu.Lock()
-	this.entries = nil
-	this.mu.Unlock()
+func (sc *Scavenger) AddEntryw(level string, msg string, keyVals ...interface{}) LogEntry {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+
+	sc.buf.Reset()
+	sc.logger.printw(level, msg, keyVals)
+	str := strings.TrimRight(sc.buf.String(), "\n")
+	entry := LogEntry{Level: level, Message: str}
+	sc.addEntryImpl(entry)
+	return entry
 }
 
-func (this *Scavenger) FindString(str string) (string, int, bool) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if str != "" {
-		for i, e := range this.entries {
-			if strings.Contains(e.Message, str) {
-				return e.Message, i, true
-			}
-		}
-	} else {
-		for i, e := range this.entries {
-			if e.Message == "" {
-				return e.Message, i, true
-			}
-		}
-	}
-	return "", 0, false
+func (sc *Scavenger) Debugw(msg string, keyVals ...interface{}) {
+	sc.AddEntryw(LevelDebug, msg, keyVals...)
 }
 
-func (this *Scavenger) FindUniqueString(str string) (string, int, bool) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	var r string
-	var n int
-	if str != "" {
-		for i, e := range this.entries {
-			if strings.Contains(e.Message, str) {
-				r = e.Message
-				switch n++; n {
-				case 1:
-				default:
-					return r, i, false
-				}
-			}
-		}
-	} else {
-		for i, e := range this.entries {
-			if e.Message == "" {
-				switch n++; n {
-				case 1:
-				default:
-					return r, i, false
-				}
-			}
-		}
-	}
-	return r, 0, n == 1
+func (sc *Scavenger) Infow(msg string, keyVals ...interface{}) {
+	sc.AddEntryw(LevelInfo, msg, keyVals...)
 }
 
-func (this *Scavenger) FindStringSequence(a []string) (int, bool) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	var j int
-	for i := 0; i < len(this.entries); i++ {
-		if a[j] != "" {
-			if strings.Contains(this.entries[i].Message, a[j]) {
-				if j++; j >= len(a) {
-					break
-				}
-			}
-		} else {
-			if this.entries[i].Message == "" {
-				if j++; j >= len(a) {
-					break
-				}
-			}
-		}
-	}
-	return j, j == len(a)
+func (sc *Scavenger) Warnw(msg string, keyVals ...interface{}) {
+	sc.AddEntryw(LevelWarn, msg, keyVals...)
 }
 
-func (this *Scavenger) FindRegexp(str string) (string, int, bool) {
-	if str == "" {
-		return this.FindString(str)
-	}
-	rex, err := regexp.Compile(str)
-	if err != nil {
-		panic(err)
-	}
-
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	for i, e := range this.entries {
-		if rex.FindString(e.Message) != "" {
-			return e.Message, i, true
-		}
-	}
-	return "", 0, false
+func (sc *Scavenger) Errorw(msg string, keyVals ...interface{}) {
+	sc.AddEntryw(LevelError, msg, keyVals...)
 }
 
-func (this *Scavenger) FindUniqueRegexp(str string) (string, int, bool) {
-	if str == "" {
-		return this.FindString(str)
-	}
-	rex, err := regexp.Compile(str)
-	if err != nil {
-		panic(err)
-	}
-
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	var r string
-	var n int
-	for i, e := range this.entries {
-		if rex.FindString(e.Message) != "" {
-			r = e.Message
-			switch n++; n {
-			case 1:
-			default:
-				return r, i, false
-			}
-		}
-	}
-	return r, 0, n == 1
+func (sc *Scavenger) Reset() {
+	sc.mu.Lock()
+	sc.entries = nil
+	sc.mu.Unlock()
 }
 
-func (this *Scavenger) FindRegexpSequence(a []string) (int, bool) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	var j int
-	for i := 0; i < len(this.entries); i++ {
-		if a[j] != "" {
-			rex, err := regexp.Compile(a[j])
-			if err != nil {
-				panic(err)
-			}
-			if rex.FindString(this.entries[i].Message) != "" {
-				if j++; j >= len(a) {
-					break
-				}
-			}
-		} else {
-			if this.entries[i].Message == "" {
-				if j++; j >= len(a) {
-					break
-				}
-			}
-		}
-	}
-	return j, j == len(a)
+func (sc *Scavenger) Finder() *MessageFinder {
+	return (*MessageFinder)(sc)
 }
 
-func (this *Scavenger) Find(str string) (string, int, bool) {
-	if strings.HasPrefix(str, rexPrefix) {
-		str = strings.TrimLeftFunc(strings.TrimPrefix(str, rexPrefix), unicode.IsSpace)
-		return this.FindRegexp(str)
-	} else {
-		return this.FindString(str)
-	}
-}
+func (sc *Scavenger) Entries() []LogEntry {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 
-func (this *Scavenger) FindUnique(str string) (string, int, bool) {
-	if strings.HasPrefix(str, rexPrefix) {
-		str = strings.TrimLeftFunc(strings.TrimPrefix(str, rexPrefix), unicode.IsSpace)
-		return this.FindUniqueRegexp(str)
-	} else {
-		return this.FindUniqueString(str)
-	}
-}
-
-func (this *Scavenger) FindSequence(a []string) (int, bool) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	var j int
-	for i := 0; i < len(this.entries); i++ {
-		if strings.HasPrefix(a[j], rexPrefix) {
-			str := strings.TrimLeftFunc(strings.TrimPrefix(a[j], rexPrefix), unicode.IsSpace)
-			if str != "" {
-				rex, err := regexp.Compile(str)
-				if err != nil {
-					panic(err)
-				}
-				if rex.FindString(this.entries[i].Message) != "" {
-					if j++; j >= len(a) {
-						break
-					}
-				}
-				continue
-			}
-		} else {
-			if a[j] != "" {
-				if strings.Contains(this.entries[i].Message, a[j]) {
-					if j++; j >= len(a) {
-						break
-					}
-				}
-				continue
-			}
-		}
-		if this.entries[i].Message == "" {
-			if j++; j >= len(a) {
-				break
-			}
-		}
-	}
-	return j, j == len(a)
-}
-
-func (this *Scavenger) Entries() []LogEntry {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	clone := make([]LogEntry, len(this.entries))
-	copy(clone, this.entries)
+	clone := make([]LogEntry, len(sc.entries))
+	copy(clone, sc.entries)
 	return clone
 }
 
-func (this *Scavenger) Len() int {
-	this.mu.Lock()
-	n := len(this.entries)
-	this.mu.Unlock()
+func (sc *Scavenger) Len() int {
+	sc.mu.Lock()
+	n := len(sc.entries)
+	sc.mu.Unlock()
 	return n
 }
 
-func (this *Scavenger) Dump() string {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+func (sc *Scavenger) Dump() string {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 
 	var sb strings.Builder
-	for _, e := range this.entries {
+	for _, e := range sc.entries {
 		_, _ = fmt.Fprintf(&sb, "%s\t%s\n", e.Level, e.Message)
 	}
 	return sb.String()
 }
 
-func (this *Scavenger) Filter(f func(level, msg string) bool) (scav *Scavenger) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+func (sc *Scavenger) Filter(fn func(level, msg string) bool) *Scavenger {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 
-	scav = NewScavenger(this.extraPrinters...)
-	scav.entries = make([]LogEntry, 0, len(this.entries))
-	for _, e := range this.entries {
-		if f == nil || f(e.Level, e.Message) {
+	scav := NewScavenger(sc.extraPrinters...)
+	scav.entries = make([]LogEntry, 0, len(sc.entries))
+	for _, e := range sc.entries {
+		if fn == nil || fn(e.Level, e.Message) {
 			scav.entries = append(scav.entries, e)
 		}
 	}
+	return scav
+}
+
+func (sc *Scavenger) StringExists(str string) (yes bool) {
+	_, _, yes = sc.Finder().FindString(str)
 	return
 }
 
-func (this *Scavenger) Debugw(msg string, keyVals ...interface{}) {
-	this.AddEntryw(LevelDebug, msg, keyVals...)
+func (sc *Scavenger) UniqueStringExists(str string) (yes bool) {
+	_, _, yes = sc.Finder().FindUniqueString(str)
+	return
 }
 
-func (this *Scavenger) Infow(msg string, keyVals ...interface{}) {
-	this.AddEntryw(LevelInfo, msg, keyVals...)
+func (sc *Scavenger) StringSequenceExists(a []string) (yes bool) {
+	_, yes = sc.Finder().FindStringSequence(a)
+	return
 }
 
-func (this *Scavenger) Warnw(msg string, keyVals ...interface{}) {
-	this.AddEntryw(LevelWarn, msg, keyVals...)
+func (sc *Scavenger) RegexpExists(str string) (yes bool) {
+	_, _, yes = sc.Finder().FindRegexp(str)
+	return
 }
 
-func (this *Scavenger) Errorw(msg string, keyVals ...interface{}) {
-	this.AddEntryw(LevelError, msg, keyVals...)
+func (sc *Scavenger) UniqueRegexpExists(str string) (yes bool) {
+	_, _, yes = sc.Finder().FindUniqueRegexp(str)
+	return
 }
 
-func (this *Scavenger) AddEntryw(level string, msg string, keyVals ...interface{}) LogEntry {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	this.buf.Reset()
-	this.logger.printw(level, msg, keyVals)
-	str := this.buf.String()
-	entry := LogEntry{Level: level, Message: str}
-	this.addEntryImpl(entry)
-	return entry
+func (sc *Scavenger) RegexpSequenceExists(a []string) (yes bool) {
+	_, yes = sc.Finder().FindRegexpSequence(a)
+	return
 }
 
-func (this *Scavenger) Exists(str string) bool {
-	_, _, ok := this.Find(str)
-	return ok
+func (sc *Scavenger) Exists(str string) (yes bool) {
+	_, _, yes = sc.Finder().Find(str)
+	return
 }
 
-func (this *Scavenger) SequenceExists(a []string) bool {
-	_, ok := this.FindSequence(a)
-	return ok
+func (sc *Scavenger) UniqueExists(str string) (yes bool) {
+	_, _, yes = sc.Finder().FindUnique(str)
+	return
 }
 
-func (this *Scavenger) UniqueExists(str string) bool {
-	_, _, ok := this.FindUnique(str)
-	return ok
+func (sc *Scavenger) SequenceExists(a []string) (yes bool) {
+	_, yes = sc.Finder().FindSequence(a)
+	return
 }
