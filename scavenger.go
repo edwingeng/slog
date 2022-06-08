@@ -10,6 +10,10 @@ import (
 
 const rexPrefix = "rex:"
 
+var (
+	_ Logger = (*Scavenger)(nil)
+)
+
 type Printer interface {
 	Print(level, message string)
 }

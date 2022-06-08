@@ -1,5 +1,9 @@
 package slog
 
+var (
+	_ Logger = DumbLogger{}
+)
+
 // DumbLogger devours all log messages and outputs nothing.
 type DumbLogger struct{}
 

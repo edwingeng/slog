@@ -4,6 +4,10 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	_ Logger = ZapLogger{}
+)
+
 // ZapLogger is a wrapper of *zap.SugaredLogger.
 type ZapLogger struct {
 	x *zap.SugaredLogger

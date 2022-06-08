@@ -24,6 +24,10 @@ const (
 )
 
 var (
+	_ Logger = (*ConsoleLogger)(nil)
+)
+
+var (
 	clrDebug = color.New(color.FgMagenta).Sprint(LevelDebug)
 	clrInfo  = color.New(color.FgGreen).Sprint(LevelInfo)
 	clrWarn  = color.New(color.FgYellow).Sprint(LevelWarn)
