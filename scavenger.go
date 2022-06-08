@@ -240,10 +240,9 @@ func (sc *Scavenger) UniqueStringExists(str string) (yes bool) {
 	return
 }
 
-// StringSequenceExists returns whether the collected messages contain the specified sequence.
-func (sc *Scavenger) StringSequenceExists(a []string) (yes bool) {
-	_, yes = sc.Finder().FindStringSequence(a)
-	return
+// FindStringSequence returns whether the collected messages contain the specified sequence.
+func (sc *Scavenger) FindStringSequence(seq []string) (found int, yes bool) {
+	return sc.Finder().FindStringSequence(seq)
 }
 
 // RegexpExists returns whether any collected message contains the regular expression pat.
@@ -258,10 +257,9 @@ func (sc *Scavenger) UniqueRegexpExists(pat string) (yes bool) {
 	return
 }
 
-// RegexpSequenceExists returns whether the collected messages contain the specified regular expression sequence.
-func (sc *Scavenger) RegexpSequenceExists(a []string) (yes bool) {
-	_, yes = sc.Finder().FindRegexpSequence(a)
-	return
+// FindRegexpSequence returns whether the collected messages contain the specified regular expression sequence.
+func (sc *Scavenger) FindRegexpSequence(seq []string) (found int, yes bool) {
+	return sc.Finder().FindRegexpSequence(seq)
 }
 
 // Exists returns whether any collected message contains str.
@@ -278,9 +276,8 @@ func (sc *Scavenger) UniqueExists(str string) (yes bool) {
 	return
 }
 
-// SequenceExists returns whether the collected messages contain the specified sequence.
-// If a string in a starts with "rex: ", it is regarded as a regular expression.
-func (sc *Scavenger) SequenceExists(a []string) (yes bool) {
-	_, yes = sc.Finder().FindSequence(a)
-	return
+// FindSequence returns whether the collected messages contain the specified sequence.
+// If a string in seq starts with "rex: ", it is regarded as a regular expression.
+func (sc *Scavenger) FindSequence(seq []string) (found int, yes bool) {
+	return sc.Finder().FindSequence(seq)
 }

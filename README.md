@@ -30,14 +30,14 @@ I love `Scavenger` the most. `Scavenger` collects all log messages for later que
 
 ``` go
 func (sc *Scavenger) StringExists(str string) (yes bool)
-func (sc *Scavenger) StringSequenceExists(a []string) (yes bool)
 func (sc *Scavenger) UniqueStringExists(str string) (yes bool)
+func (sc *Scavenger) FindStringSequence(seq []string) (found int, yes bool)
 func (sc *Scavenger) RegexpExists(pat string) (yes bool)
-func (sc *Scavenger) RegexpSequenceExists(a []string) (yes bool)
 func (sc *Scavenger) UniqueRegexpExists(pat string) (yes bool)
+func (sc *Scavenger) FindRegexpSequence(seq []string) (found int, yes bool)
 func (sc *Scavenger) Exists(str string) (yes bool)
-func (sc *Scavenger) SequenceExists(a []string) (yes bool)
 func (sc *Scavenger) UniqueExists(str string) (yes bool)
+func (sc *Scavenger) FindSequence(seq []string) (found int, yes bool)
 
 func (sc *Scavenger) Dump() string
 func (sc *Scavenger) Entries() []LogEntry

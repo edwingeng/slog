@@ -149,7 +149,7 @@ ERROR	1
 	}
 }
 
-func TestScavenger_SequenceExists(t *testing.T) {
+func TestScavenger_FindSequence(t *testing.T) {
 	var sc = NewScavenger()
 	sc.Debug("hello 1")
 	sc.Debug()
@@ -162,16 +162,16 @@ func TestScavenger_SequenceExists(t *testing.T) {
 		"hello",
 		"world",
 	}
-	if yes := sc.StringSequenceExists(a1); !yes {
-		t.Fatal("StringSequenceExists does not work as expected")
+	if found, yes := sc.FindStringSequence(a1); !yes || found != len(a1) {
+		t.Fatal("FindStringSequence does not work as expected")
 	}
 
 	a2 := []string{
 		"world",
 		"hello",
 	}
-	if yes := sc.StringSequenceExists(a2); yes {
-		t.Fatal("StringSequenceExists does not work as expected")
+	if found, yes := sc.FindStringSequence(a2); yes || found != 1 {
+		t.Fatal("FindStringSequence does not work as expected")
 	}
 
 	a3 := []string{
@@ -179,8 +179,8 @@ func TestScavenger_SequenceExists(t *testing.T) {
 		"",
 		"world",
 	}
-	if yes := sc.StringSequenceExists(a3); !yes {
-		t.Fatal("StringSequenceExists does not work as expected")
+	if found, yes := sc.FindStringSequence(a3); !yes || found != len(a3) {
+		t.Fatal("FindStringSequence does not work as expected")
 	}
 
 	a4 := []string{
@@ -188,16 +188,16 @@ func TestScavenger_SequenceExists(t *testing.T) {
 		"world",
 		"",
 	}
-	if yes := sc.StringSequenceExists(a4); !yes {
-		t.Fatal("StringSequenceExists does not work as expected")
+	if found, yes := sc.FindStringSequence(a4); !yes || found != len(a4) {
+		t.Fatal("FindStringSequence does not work as expected")
 	}
 
 	b1 := []string{
 		"hello \\d+",
 		"it is a good.+",
 	}
-	if yes := sc.RegexpSequenceExists(b1); !yes {
-		t.Fatal("RegexpSequenceExists does not work as expected")
+	if found, yes := sc.FindRegexpSequence(b1); !yes || found != len(b1) {
+		t.Fatal("FindRegexpSequence does not work as expected")
 	}
 
 	b2 := []string{
@@ -205,8 +205,8 @@ func TestScavenger_SequenceExists(t *testing.T) {
 		"fo+ bar",
 		"it is a good.+",
 	}
-	if yes := sc.RegexpSequenceExists(b2); yes {
-		t.Fatal("RegexpSequenceExists does not work as expected")
+	if found, yes := sc.FindRegexpSequence(b2); yes || found != 2 {
+		t.Fatal("FindRegexpSequence does not work as expected")
 	}
 
 	b3 := []string{
@@ -214,21 +214,21 @@ func TestScavenger_SequenceExists(t *testing.T) {
 		"",
 		"it is a good.+",
 	}
-	if yes := sc.RegexpSequenceExists(b3); !yes {
-		t.Fatal("RegexpSequenceExists does not work as expected")
+	if found, yes := sc.FindRegexpSequence(b3); !yes || found != len(b3) {
+		t.Fatal("FindRegexpSequence does not work as expected")
 	}
 
 	b4 := append(b3, "")
-	if yes := sc.RegexpSequenceExists(b4); !yes {
-		t.Fatal("RegexpSequenceExists does not work as expected")
+	if found, yes := sc.FindRegexpSequence(b4); !yes || found != len(b4) {
+		t.Fatal("FindRegexpSequence does not work as expected")
 	}
 
 	c1 := []string{
 		"rex: hello \\d+",
 		"it is a good day",
 	}
-	if yes := sc.SequenceExists(c1); !yes {
-		t.Fatal("SequenceExists does not work as expected")
+	if found, yes := sc.FindSequence(c1); !yes || found != len(c1) {
+		t.Fatal("FindSequence does not work as expected")
 	}
 
 	c2 := []string{
@@ -236,8 +236,8 @@ func TestScavenger_SequenceExists(t *testing.T) {
 		"rex: fo+ bar",
 		"it is a good day",
 	}
-	if yes := sc.SequenceExists(c2); yes {
-		t.Fatal("SequenceExists does not work as expected")
+	if found, yes := sc.FindSequence(c2); yes || found != 2 {
+		t.Fatal("FindSequence does not work as expected")
 	}
 
 	c3 := []string{
@@ -245,8 +245,8 @@ func TestScavenger_SequenceExists(t *testing.T) {
 		"it is a good day",
 		"rex: fo+ bar",
 	}
-	if yes := sc.SequenceExists(c3); !yes {
-		t.Fatal("SequenceExists does not work as expected")
+	if found, yes := sc.FindSequence(c3); !yes || found != len(c3) {
+		t.Fatal("FindSequence does not work as expected")
 	}
 
 	c4 := []string{
@@ -254,13 +254,13 @@ func TestScavenger_SequenceExists(t *testing.T) {
 		"",
 		"it is a good day",
 	}
-	if yes := sc.SequenceExists(c4); !yes {
-		t.Fatal("SequenceExists does not work as expected")
+	if found, yes := sc.FindSequence(c4); !yes || found != len(c4) {
+		t.Fatal("FindSequence does not work as expected")
 	}
 
 	c5 := append(c4, "rex: ")
-	if yes := sc.SequenceExists(c5); !yes {
-		t.Fatal("SequenceExists does not work as expected")
+	if found, yes := sc.FindSequence(c5); !yes || found != len(c5) {
+		t.Fatal("FindSequence does not work as expected")
 	}
 }
 
