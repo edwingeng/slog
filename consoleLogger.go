@@ -70,7 +70,7 @@ func NewConsoleLogger(opts ...Option) *ConsoleLogger {
 	return &cl
 }
 
-func (cl *ConsoleLogger) NewLoggerWith(keyVals ...interface{}) Logger {
+func (cl *ConsoleLogger) NewLoggerWith(keyVals ...any) Logger {
 	newLogger := *cl
 	if len(keyVals) == 0 {
 		return &newLogger
@@ -80,14 +80,14 @@ func (cl *ConsoleLogger) NewLoggerWith(keyVals ...interface{}) Logger {
 	return &newLogger
 }
 
-func combineFields(fields string, keyVals ...interface{}) Option {
+func combineFields(fields string, keyVals ...any) Option {
 	if len(fields) == 0 {
 		return WithFields(keyVals...)
 	}
 
 	decoder := json.NewDecoder(strings.NewReader(fields))
 	decoder.UseNumber()
-	var m map[string]interface{}
+	var m map[string]any
 	err := decoder.Decode(&m)
 	if err != nil {
 		panic(err)
@@ -149,7 +149,7 @@ func (cl *ConsoleLogger) buildHeader(level string, extraSkip int32) bytes.Buffer
 	return buf
 }
 
-func (cl *ConsoleLogger) println(level string, args []interface{}) {
+func (cl *ConsoleLogger) println(level string, args []any) {
 	if len(args) == 0 {
 		return
 	}
@@ -171,54 +171,54 @@ func (cl *ConsoleLogger) outputImpl(buf *bytes.Buffer, written int) {
 	_ = cl.stdLog.Output(0, buf.String())
 }
 
-func (cl *ConsoleLogger) Debug(args ...interface{}) {
+func (cl *ConsoleLogger) Debug(args ...any) {
 	if !cl.disableDebug {
 		cl.println(LevelDebug, args)
 	}
 }
 
-func (cl *ConsoleLogger) Info(args ...interface{}) {
+func (cl *ConsoleLogger) Info(args ...any) {
 	if !cl.disableInfo {
 		cl.println(LevelInfo, args)
 	}
 }
 
-func (cl *ConsoleLogger) Warn(args ...interface{}) {
+func (cl *ConsoleLogger) Warn(args ...any) {
 	if !cl.disableWarn {
 		cl.println(LevelWarn, args)
 	}
 }
 
-func (cl *ConsoleLogger) Error(args ...interface{}) {
+func (cl *ConsoleLogger) Error(args ...any) {
 	cl.println(LevelError, args)
 }
 
-func (cl *ConsoleLogger) printf(level string, format string, args []interface{}) {
+func (cl *ConsoleLogger) printf(level string, format string, args []any) {
 	buf := cl.buildHeader(level, 0)
 	str := fmt.Sprintf(format, args...)
 	written, _ := buf.WriteString(str)
 	cl.outputImpl(&buf, written)
 }
 
-func (cl *ConsoleLogger) Debugf(format string, args ...interface{}) {
+func (cl *ConsoleLogger) Debugf(format string, args ...any) {
 	if !cl.disableDebug {
 		cl.printf(LevelDebug, format, args)
 	}
 }
 
-func (cl *ConsoleLogger) Infof(format string, args ...interface{}) {
+func (cl *ConsoleLogger) Infof(format string, args ...any) {
 	if !cl.disableInfo {
 		cl.printf(LevelInfo, format, args)
 	}
 }
 
-func (cl *ConsoleLogger) Warnf(format string, args ...interface{}) {
+func (cl *ConsoleLogger) Warnf(format string, args ...any) {
 	if !cl.disableWarn {
 		cl.printf(LevelWarn, format, args)
 	}
 }
 
-func (cl *ConsoleLogger) Errorf(format string, args ...interface{}) {
+func (cl *ConsoleLogger) Errorf(format string, args ...any) {
 	cl.printf(LevelError, format, args)
 }
 
@@ -244,29 +244,29 @@ func (cl *ConsoleLogger) Print(level, msg string) {
 	cl.outputImpl(&buf, written)
 }
 
-func (cl *ConsoleLogger) Debugw(msg string, keyVals ...interface{}) {
+func (cl *ConsoleLogger) Debugw(msg string, keyVals ...any) {
 	if !cl.disableDebug {
 		cl.printw(LevelDebug, msg, keyVals)
 	}
 }
 
-func (cl *ConsoleLogger) Infow(msg string, keyVals ...interface{}) {
+func (cl *ConsoleLogger) Infow(msg string, keyVals ...any) {
 	if !cl.disableInfo {
 		cl.printw(LevelInfo, msg, keyVals)
 	}
 }
 
-func (cl *ConsoleLogger) Warnw(msg string, keyVals ...interface{}) {
+func (cl *ConsoleLogger) Warnw(msg string, keyVals ...any) {
 	if !cl.disableWarn {
 		cl.printw(LevelWarn, msg, keyVals)
 	}
 }
 
-func (cl *ConsoleLogger) Errorw(msg string, keyVals ...interface{}) {
+func (cl *ConsoleLogger) Errorw(msg string, keyVals ...any) {
 	cl.printw(LevelError, msg, keyVals)
 }
 
-func (cl *ConsoleLogger) printw(level string, msg string, keyVals []interface{}) {
+func (cl *ConsoleLogger) printw(level string, msg string, keyVals []any) {
 	buf := cl.buildHeader(level, 0)
 	written, _ := buf.WriteString(msg)
 
@@ -304,7 +304,7 @@ func (cl *ConsoleLogger) printw(level string, msg string, keyVals []interface{})
 	_ = cl.stdLog.Output(0, buf.String())
 }
 
-func stringlize(v interface{}) string {
+func stringlize(v any) string {
 	switch x := v.(type) {
 	case string:
 		return strconv.Quote(x)
@@ -396,11 +396,11 @@ func WithStdLogger(stdLog *log.Logger) Option {
 }
 
 // WithFields adds a variadic number of fields to the logging context.
-func WithFields(keyVals ...interface{}) Option {
-	return withFieldsImpl(make(map[string]interface{}), keyVals...)
+func WithFields(keyVals ...any) Option {
+	return withFieldsImpl(make(map[string]any), keyVals...)
 }
 
-func withFieldsImpl(m map[string]interface{}, keyVals ...interface{}) Option {
+func withFieldsImpl(m map[string]any, keyVals ...any) Option {
 	keyVals = replaceZapFields(keyVals)
 	for i := 0; i < len(keyVals)-1; i += 2 {
 		k := fmt.Sprint(keyVals[i])
@@ -437,8 +437,8 @@ func withFieldsImpl(m map[string]interface{}, keyVals ...interface{}) Option {
 	}
 }
 
-func replaceZapFields(keyVals []interface{}) []interface{} {
-	var a []interface{}
+func replaceZapFields(keyVals []any) []any {
+	var a []any
 	for i, n := 0, len(keyVals); i < n; i++ {
 		if f, ok := keyVals[i].(zap.Field); ok {
 			encoder := zapcore.NewMapObjectEncoder()

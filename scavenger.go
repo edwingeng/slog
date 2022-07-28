@@ -54,7 +54,7 @@ func newScavengerImpl(data *internalData, printers []Printer) *Scavenger {
 	return sc
 }
 
-func (sc *Scavenger) NewLoggerWith(keyVals ...interface{}) Logger {
+func (sc *Scavenger) NewLoggerWith(keyVals ...any) Logger {
 	scav := newScavengerImpl(sc.internalData, sc.extraPrinters)
 	combineFields(sc.logger.fields, keyVals...).fn(scav.logger)
 	return scav
@@ -89,7 +89,7 @@ func (sc *Scavenger) addEntryImpl(e LogEntry) {
 }
 
 // AddEntry adds a new log entry with the help of fmt.Sprint.
-func (sc *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
+func (sc *Scavenger) AddEntry(level string, args []any) LogEntry {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 
@@ -101,24 +101,24 @@ func (sc *Scavenger) AddEntry(level string, args []interface{}) LogEntry {
 	return entry
 }
 
-func (sc *Scavenger) Debug(args ...interface{}) {
+func (sc *Scavenger) Debug(args ...any) {
 	sc.AddEntry(LevelDebug, args)
 }
 
-func (sc *Scavenger) Info(args ...interface{}) {
+func (sc *Scavenger) Info(args ...any) {
 	sc.AddEntry(LevelInfo, args)
 }
 
-func (sc *Scavenger) Warn(args ...interface{}) {
+func (sc *Scavenger) Warn(args ...any) {
 	sc.AddEntry(LevelWarn, args)
 }
 
-func (sc *Scavenger) Error(args ...interface{}) {
+func (sc *Scavenger) Error(args ...any) {
 	sc.AddEntry(LevelError, args)
 }
 
 // AddEntryf adds a new log entry with the help of fmt.Sprintf.
-func (sc *Scavenger) AddEntryf(level string, format string, args []interface{}) LogEntry {
+func (sc *Scavenger) AddEntryf(level string, format string, args []any) LogEntry {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 
@@ -130,24 +130,24 @@ func (sc *Scavenger) AddEntryf(level string, format string, args []interface{}) 
 	return entry
 }
 
-func (sc *Scavenger) Debugf(format string, args ...interface{}) {
+func (sc *Scavenger) Debugf(format string, args ...any) {
 	sc.AddEntryf(LevelDebug, format, args)
 }
 
-func (sc *Scavenger) Infof(format string, args ...interface{}) {
+func (sc *Scavenger) Infof(format string, args ...any) {
 	sc.AddEntryf(LevelInfo, format, args)
 }
 
-func (sc *Scavenger) Warnf(format string, args ...interface{}) {
+func (sc *Scavenger) Warnf(format string, args ...any) {
 	sc.AddEntryf(LevelWarn, format, args)
 }
 
-func (sc *Scavenger) Errorf(format string, args ...interface{}) {
+func (sc *Scavenger) Errorf(format string, args ...any) {
 	sc.AddEntryf(LevelError, format, args)
 }
 
 // AddEntryw adds a new log entry. The variadic key-value pairs are treated as they are in NewLoggerWith.
-func (sc *Scavenger) AddEntryw(level string, msg string, keyVals ...interface{}) LogEntry {
+func (sc *Scavenger) AddEntryw(level string, msg string, keyVals ...any) LogEntry {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 
@@ -159,19 +159,19 @@ func (sc *Scavenger) AddEntryw(level string, msg string, keyVals ...interface{})
 	return entry
 }
 
-func (sc *Scavenger) Debugw(msg string, keyVals ...interface{}) {
+func (sc *Scavenger) Debugw(msg string, keyVals ...any) {
 	sc.AddEntryw(LevelDebug, msg, keyVals...)
 }
 
-func (sc *Scavenger) Infow(msg string, keyVals ...interface{}) {
+func (sc *Scavenger) Infow(msg string, keyVals ...any) {
 	sc.AddEntryw(LevelInfo, msg, keyVals...)
 }
 
-func (sc *Scavenger) Warnw(msg string, keyVals ...interface{}) {
+func (sc *Scavenger) Warnw(msg string, keyVals ...any) {
 	sc.AddEntryw(LevelWarn, msg, keyVals...)
 }
 
-func (sc *Scavenger) Errorw(msg string, keyVals ...interface{}) {
+func (sc *Scavenger) Errorw(msg string, keyVals ...any) {
 	sc.AddEntryw(LevelError, msg, keyVals...)
 }
 

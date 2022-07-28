@@ -126,7 +126,7 @@ func TestConsoleLogger_Print(t *testing.T) {
 func TestWithFields(t *testing.T) {
 	var buf bytes.Buffer
 	stdLog := log.New(&buf, "", log.Ltime)
-	fields := []interface{}{zap.String("name", "ariel"), "foo", 100, "bar"}
+	fields := []any{zap.String("name", "ariel"), "foo", 100, "bar"}
 	logger := NewConsoleLogger(WithStdLogger(stdLog), WithFields(fields...), WithoutColor())
 	logger.Error("hello")
 	var pat1 = "hello\t{\"foo\": 100, \"name\": \"ariel\"}"
@@ -264,7 +264,7 @@ func TestConsoleLogger_NewLoggerWith(t *testing.T) {
 	}
 
 	resetBuffer(&buf)
-	fields := []interface{}{zap.String("name", "ariel"), "bar", "qux", "xxx"}
+	fields := []any{zap.String("name", "ariel"), "bar", "qux", "xxx"}
 	x3 := NewConsoleLogger(WithStdLogger(stdLog), WithFields(fields...), WithoutColor())
 	x4 := x3.NewLoggerWith("foo", 100, "foo2", "world")
 	x3.Info("hello")
@@ -323,7 +323,7 @@ func TestConsoleLogger_Colored(t *testing.T) {
 }
 
 func TestStringlize(t *testing.T) {
-	m := map[interface{}]string{
+	m := map[any]string{
 		"str\ning":               `"str\ning"`,
 		json.Number("100"):       "100",
 		json.Number("3.1415926"): "3.1415926",

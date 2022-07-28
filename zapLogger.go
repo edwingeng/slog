@@ -23,55 +23,55 @@ func (zl ZapLogger) Zap() *zap.SugaredLogger {
 	return zl.x
 }
 
-func (zl ZapLogger) NewLoggerWith(keyVals ...interface{}) Logger {
+func (zl ZapLogger) NewLoggerWith(keyVals ...any) Logger {
 	return ZapLogger{x: zl.x.With(keyVals...)}
 }
 
-func (zl ZapLogger) Debug(args ...interface{}) {
+func (zl ZapLogger) Debug(args ...any) {
 	zl.x.Debug(args...)
 }
 
-func (zl ZapLogger) Info(args ...interface{}) {
+func (zl ZapLogger) Info(args ...any) {
 	zl.x.Info(args...)
 }
 
-func (zl ZapLogger) Warn(args ...interface{}) {
+func (zl ZapLogger) Warn(args ...any) {
 	zl.x.Warn(args...)
 }
 
-func (zl ZapLogger) Error(args ...interface{}) {
+func (zl ZapLogger) Error(args ...any) {
 	zl.x.Error(args...)
 }
 
-func (zl ZapLogger) Debugf(format string, args ...interface{}) {
+func (zl ZapLogger) Debugf(format string, args ...any) {
 	zl.x.Debugf(format, args...)
 }
 
-func (zl ZapLogger) Infof(format string, args ...interface{}) {
+func (zl ZapLogger) Infof(format string, args ...any) {
 	zl.x.Infof(format, args...)
 }
 
-func (zl ZapLogger) Warnf(format string, args ...interface{}) {
+func (zl ZapLogger) Warnf(format string, args ...any) {
 	zl.x.Warnf(format, args...)
 }
 
-func (zl ZapLogger) Errorf(format string, args ...interface{}) {
+func (zl ZapLogger) Errorf(format string, args ...any) {
 	zl.x.Errorf(format, args...)
 }
 
-func (zl ZapLogger) Debugw(msg string, keyVals ...interface{}) {
+func (zl ZapLogger) Debugw(msg string, keyVals ...any) {
 	zl.x.Debugw(msg, keyVals...)
 }
 
-func (zl ZapLogger) Infow(msg string, keyVals ...interface{}) {
+func (zl ZapLogger) Infow(msg string, keyVals ...any) {
 	zl.x.Infow(msg, keyVals...)
 }
 
-func (zl ZapLogger) Warnw(msg string, keyVals ...interface{}) {
+func (zl ZapLogger) Warnw(msg string, keyVals ...any) {
 	zl.x.Warnw(msg, keyVals...)
 }
 
-func (zl ZapLogger) Errorw(msg string, keyVals ...interface{}) {
+func (zl ZapLogger) Errorw(msg string, keyVals ...any) {
 	zl.x.Errorw(msg, keyVals...)
 }
 
