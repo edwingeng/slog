@@ -45,8 +45,9 @@ type entryHolder struct {
 // Scavenger collects all log messages for later queries.
 type Scavenger struct {
 	*entryHolder
-	x   zap.SugaredLogger
 	buf *bytes.Buffer
+
+	x   zap.SugaredLogger
 	kvs []any
 }
 
@@ -93,72 +94,96 @@ func (sc *Scavenger) NewLoggerWith(keyVals ...any) Logger {
 }
 
 func (sc *Scavenger) Debug(args ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Debug(args...)
 	sc.collectEntry(LevelDebug)
 }
 
 func (sc *Scavenger) Info(args ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Info(args...)
 	sc.collectEntry(LevelInfo)
 }
 
 func (sc *Scavenger) Warn(args ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Warn(args...)
 	sc.collectEntry(LevelWarn)
 }
 
 func (sc *Scavenger) Error(args ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Error(args...)
 	sc.collectEntry(LevelError)
 }
 
 func (sc *Scavenger) Debugf(format string, args ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Debugf(format, args...)
 	sc.collectEntry(LevelDebug)
 }
 
 func (sc *Scavenger) Infof(format string, args ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Infof(format, args...)
 	sc.collectEntry(LevelInfo)
 }
 
 func (sc *Scavenger) Warnf(format string, args ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Warnf(format, args...)
 	sc.collectEntry(LevelWarn)
 }
 
 func (sc *Scavenger) Errorf(format string, args ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Errorf(format, args...)
 	sc.collectEntry(LevelError)
 }
 
 func (sc *Scavenger) Debugw(msg string, keyVals ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Debugw(msg, keyVals...)
 	sc.collectEntry(LevelDebug)
 }
 
 func (sc *Scavenger) Infow(msg string, keyVals ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Infow(msg, keyVals...)
 	sc.collectEntry(LevelInfo)
 }
 
 func (sc *Scavenger) Warnw(msg string, keyVals ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Warnw(msg, keyVals...)
 	sc.collectEntry(LevelWarn)
 }
 
 func (sc *Scavenger) Errorw(msg string, keyVals ...any) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	sc.buf.Reset()
 	sc.x.Errorw(msg, keyVals...)
 	sc.collectEntry(LevelError)
@@ -170,7 +195,6 @@ func (sc *Scavenger) collectEntry(level string) {
 
 	if bytes.Count(d2, lineEnding) > 0 {
 		a := bytes.Split(d2, lineEnding)
-		sc.mu.Lock()
 		for i, v := range a {
 			switch i {
 			case len(a) - 1:
@@ -185,16 +209,13 @@ func (sc *Scavenger) collectEntry(level string) {
 				})
 			}
 		}
-		sc.mu.Unlock()
 		return
 	}
 
-	sc.mu.Lock()
 	sc.entries = append(sc.entries, LogEntry{
 		Level:   level,
 		Message: string(d2),
 	})
-	sc.mu.Unlock()
 }
 
 func (sc *Scavenger) FlushLogger() error {

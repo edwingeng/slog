@@ -3,6 +3,8 @@ package slog
 import (
 	"fmt"
 	"math"
+	"regexp"
+	"sync"
 	"testing"
 )
 
@@ -339,5 +341,39 @@ WARN	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "hell
 
 	if sc3.Len() != sc1.Len() {
 		t.Fatal(`sc3.Len() != sc1.Len()`)
+	}
+}
+
+func TestScavenger_Race(t *testing.T) {
+	var sc = NewScavenger()
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		i := i
+		scav := sc
+		if i%2 == 0 {
+			scav = sc.NewLoggerWith("abc", "x").(*Scavenger)
+		}
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 100; j++ {
+				scav.Infow("hello", "foo", i*100+j)
+			}
+		}()
+	}
+
+	wg.Wait()
+	if sc.Len() != 10000 {
+		t.Fatal(`sc.Len() != 10000`)
+	}
+
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	rex1 := regexp.MustCompile(`^hello` + "\t" + `\{"abc": "x", "foo": \d+\}$`)
+	rex2 := regexp.MustCompile(`^hello` + "\t" + `\{"foo": \d+\}$`)
+	for _, e := range sc.entries {
+		if !rex1.MatchString(e.Message) && !rex2.MatchString(e.Message) {
+			t.Fatal(`Scavenger is not thread-safe`)
+		}
 	}
 }
