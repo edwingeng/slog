@@ -1,35 +1,72 @@
-# slog
-A collection of handy log utilities, including `ConsoleLogger`, `Scavenger`, `ZapLogger` and `DumbLogger`.
+# Overview
+`slog` is a collection of handy log utilities, including `ZapLogger`, `Scavenger` and `DumbLogger`.
 
 Each of them implements the following interface:
 
 ``` go
 type Logger interface {
-	NewLoggerWith(keyVals ...any) Logger
+    NewLoggerWith(keyVals ...any) Logger
 
-	Debug(args ...any)
-	Info(args ...any)
-	Warn(args ...any)
-	Error(args ...any)
+    Debug(args ...any)
+    Info(args ...any)
+    Warn(args ...any)
+    Error(args ...any)
 
-	Debugf(format string, args ...any)
-	Infof(format string, args ...any)
-	Warnf(format string, args ...any)
-	Errorf(format string, args ...any)
+    Debugf(format string, args ...any)
+    Infof(format string, args ...any)
+    Warnf(format string, args ...any)
+    Errorf(format string, args ...any)
 
-	Debugw(msg string, keyVals ...any)
-	Infow(msg string, keyVals ...any)
-	Warnw(msg string, keyVals ...any)
-	Errorw(msg string, keyVals ...any)
+    Debugw(msg string, keyVals ...any)
+    Infow(msg string, keyVals ...any)
+    Warnw(msg string, keyVals ...any)
+    Errorw(msg string, keyVals ...any)
 
-	FlushLogger() error
+    FlushLogger() error
 }
 ```
 
-I love `Scavenger` the most. `Scavenger` collects all log messages for later queries. It makes designing complex test cases much easier.
+# Getting Started
+```
+go get -u github.com/edwingeng/slog
+```
+
+# Usage
 
 ``` go
-func NewScavenger(printers ...Printer) *Scavenger
+logger, err := NewDevelopmentConfig().Build()
+if err != nil {
+    panic(err)
+}
+
+logger.Debug("str1")
+logger.Infof("str2: %d", 200)
+logger.Warnw("str3", "foo", 300)
+
+type HandlerContext struct {
+    context.Context
+    Logger
+}
+
+ctx := &HandlerContext{
+    Context: context.TODO(),
+    Logger:  logger.NewLoggerWith("handler", "UpdateUserName"),
+}
+ctx.Error("invalid user name")
+
+// Output:
+// 15|23:10:48     DEBUG   slog/example_test.go:11 str1
+// 15|23:10:48     INFO    slog/example_test.go:12 str2: 200
+// 15|23:10:48     WARN    slog/example_test.go:13 str3    {"foo": 300}
+// 15|23:10:48     ERROR   slog/example_test.go:24 invalid user name       {"handler": "UpdateUserName"}
+```
+
+# Scavenger
+
+I love `Scavenger` the most. `Scavenger` saves all log messages in memory for later use, which makes it much easier to design complex test cases.
+
+``` go
+func NewScavenger() *Scavenger
 
 func (sc *Scavenger) StringExists(str string) (yes bool)
 func (sc *Scavenger) UniqueStringExists(str string) (yes bool)
@@ -40,6 +77,7 @@ func (sc *Scavenger) FindRegexpSequence(seq []string) (found int, yes bool)
 func (sc *Scavenger) Exists(str string) (yes bool)
 func (sc *Scavenger) UniqueExists(str string) (yes bool)
 func (sc *Scavenger) FindSequence(seq []string) (found int, yes bool)
+func (sc *Scavenger) Finder() *MessageFinder
 
 func (sc *Scavenger) Dump() string
 func (sc *Scavenger) Entries() []LogEntry
