@@ -149,6 +149,7 @@ ERROR	1
 	}
 }
 
+//gocyclo:ignore
 func TestScavenger_FindSequence(t *testing.T) {
 	var sc = NewScavenger()
 	sc.Debug("hello 1")
