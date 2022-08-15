@@ -3,7 +3,10 @@ package slog
 import (
 	"bytes"
 	"fmt"
-	"log"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -11,168 +14,191 @@ import (
 const rexPrefix = "rex:"
 
 var (
-	_ Logger = (*Scavenger)(nil)
+	_ Logger = &Scavenger{}
 )
 
-type Printer interface {
-	Print(level, message string)
+var (
+	lineEnding = []byte(zapcore.DefaultLineEnding)
+)
+
+func goID() int {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
+	id, err := strconv.Atoi(idField)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get goroutine id: %v", err))
+	}
+	return id
 }
 
 type LogEntry struct {
-	Level   string
-	Message string
+	Level   string `json:"level"`
+	Message string `json:"message"`
 }
 
-type internalData struct {
+type entryHolder struct {
 	mu      sync.Mutex
 	entries []LogEntry
 }
 
 // Scavenger collects all log messages for later queries.
 type Scavenger struct {
-	logger        *ConsoleLogger
-	extraPrinters []Printer
-
-	*internalData
-	buf bytes.Buffer
+	*entryHolder
+	x   zap.SugaredLogger
+	buf *bytes.Buffer
+	kvs []any
 }
 
 // NewScavenger creates a new Scavenger.
-func NewScavenger(printers ...Printer) *Scavenger {
-	return newScavengerImpl(&internalData{}, printers)
-}
+func NewScavenger() *Scavenger {
+	sinkName := fmt.Sprintf("scavenger-%d", goID())
+	sink := &memorySink{}
+	sinkRegistry.Lock()
+	sinkRegistry.m[sinkName] = sink
+	sinkRegistry.Unlock()
+	defer func() {
+		sinkRegistry.Lock()
+		delete(sinkRegistry.m, sinkName)
+		sinkRegistry.Unlock()
+	}()
 
-func newScavengerImpl(data *internalData, printers []Printer) *Scavenger {
-	sc := &Scavenger{internalData: data}
-	stdLog := log.New(&sc.buf, "", 0)
-	sc.logger = NewConsoleLogger(WithStdLogger(stdLog), WithBareMode())
-	for _, p := range printers {
-		if p != nil {
-			sc.extraPrinters = append(sc.extraPrinters, p)
-		}
+	cfg := zap.NewDevelopmentConfig()
+	cfg.OutputPaths = []string{"memory://" + sinkName}
+	cfg.ErrorOutputPaths = []string{"memory://" + sinkName}
+	cfg.DisableStacktrace = true
+	cfg.DisableCaller = true
+	cfg.EncoderConfig.TimeKey = ""
+	cfg.EncoderConfig.LevelKey = ""
+
+	l, err := cfg.Build()
+	if err != nil {
+		panic(err)
 	}
-	return sc
+
+	var sc Scavenger
+	sc.x = *l.Sugar()
+	sc.buf = &sink.buf
+	sc.entryHolder = &entryHolder{}
+	return &sc
 }
 
 func (sc *Scavenger) NewLoggerWith(keyVals ...any) Logger {
-	scav := newScavengerImpl(sc.internalData, sc.extraPrinters)
-	combineFields(sc.logger.fields, keyVals...).fn(scav.logger)
+	kvs := append(sc.kvs, keyVals...)
+	scav := NewScavenger()
+	scav.x = *scav.x.With(kvs...)
+	scav.entryHolder = sc.entryHolder
+	scav.kvs = kvs
 	return scav
 }
 
-func (sc *Scavenger) FlushLogger() error {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-
-	var firstErr error
-	if err := sc.logger.FlushLogger(); err != nil {
-		firstErr = err
-	}
-	for _, printer := range sc.extraPrinters {
-		x, ok := printer.(interface {
-			Sync() error
-		})
-		if ok {
-			if err := x.Sync(); err != nil && firstErr == nil {
-				firstErr = err
-			}
-		}
-	}
-	return firstErr
-}
-
-func (sc *Scavenger) addEntryImpl(e LogEntry) {
-	sc.entries = append(sc.entries, e)
-	for _, p := range sc.extraPrinters {
-		p.Print(e.Level, e.Message)
-	}
-}
-
-// AddEntry adds a new log entry with the help of fmt.Sprint.
-func (sc *Scavenger) AddEntry(level string, args []any) LogEntry {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-
-	sc.buf.Reset()
-	sc.logger.println(level, args)
-	str := strings.TrimRight(sc.buf.String(), "\n")
-	entry := LogEntry{Level: level, Message: str}
-	sc.addEntryImpl(entry)
-	return entry
-}
-
 func (sc *Scavenger) Debug(args ...any) {
-	sc.AddEntry(LevelDebug, args)
+	sc.buf.Reset()
+	sc.x.Debug(args...)
+	sc.collectEntry(LevelDebug)
 }
 
 func (sc *Scavenger) Info(args ...any) {
-	sc.AddEntry(LevelInfo, args)
+	sc.buf.Reset()
+	sc.x.Info(args...)
+	sc.collectEntry(LevelInfo)
 }
 
 func (sc *Scavenger) Warn(args ...any) {
-	sc.AddEntry(LevelWarn, args)
+	sc.buf.Reset()
+	sc.x.Warn(args...)
+	sc.collectEntry(LevelWarn)
 }
 
 func (sc *Scavenger) Error(args ...any) {
-	sc.AddEntry(LevelError, args)
-}
-
-// AddEntryf adds a new log entry with the help of fmt.Sprintf.
-func (sc *Scavenger) AddEntryf(level string, format string, args []any) LogEntry {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-
 	sc.buf.Reset()
-	sc.logger.printf(level, format, args)
-	str := strings.TrimRight(sc.buf.String(), "\n")
-	entry := LogEntry{Level: level, Message: str}
-	sc.addEntryImpl(entry)
-	return entry
+	sc.x.Error(args...)
+	sc.collectEntry(LevelError)
 }
 
 func (sc *Scavenger) Debugf(format string, args ...any) {
-	sc.AddEntryf(LevelDebug, format, args)
+	sc.buf.Reset()
+	sc.x.Debugf(format, args...)
+	sc.collectEntry(LevelDebug)
 }
 
 func (sc *Scavenger) Infof(format string, args ...any) {
-	sc.AddEntryf(LevelInfo, format, args)
+	sc.buf.Reset()
+	sc.x.Infof(format, args...)
+	sc.collectEntry(LevelInfo)
 }
 
 func (sc *Scavenger) Warnf(format string, args ...any) {
-	sc.AddEntryf(LevelWarn, format, args)
+	sc.buf.Reset()
+	sc.x.Warnf(format, args...)
+	sc.collectEntry(LevelWarn)
 }
 
 func (sc *Scavenger) Errorf(format string, args ...any) {
-	sc.AddEntryf(LevelError, format, args)
-}
-
-// AddEntryw adds a new log entry. The variadic key-value pairs are treated as they are in NewLoggerWith.
-func (sc *Scavenger) AddEntryw(level string, msg string, keyVals ...any) LogEntry {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-
 	sc.buf.Reset()
-	sc.logger.printw(level, msg, keyVals)
-	str := strings.TrimRight(sc.buf.String(), "\n")
-	entry := LogEntry{Level: level, Message: str}
-	sc.addEntryImpl(entry)
-	return entry
+	sc.x.Errorf(format, args...)
+	sc.collectEntry(LevelError)
 }
 
 func (sc *Scavenger) Debugw(msg string, keyVals ...any) {
-	sc.AddEntryw(LevelDebug, msg, keyVals...)
+	sc.buf.Reset()
+	sc.x.Debugw(msg, keyVals...)
+	sc.collectEntry(LevelDebug)
 }
 
 func (sc *Scavenger) Infow(msg string, keyVals ...any) {
-	sc.AddEntryw(LevelInfo, msg, keyVals...)
+	sc.buf.Reset()
+	sc.x.Infow(msg, keyVals...)
+	sc.collectEntry(LevelInfo)
 }
 
 func (sc *Scavenger) Warnw(msg string, keyVals ...any) {
-	sc.AddEntryw(LevelWarn, msg, keyVals...)
+	sc.buf.Reset()
+	sc.x.Warnw(msg, keyVals...)
+	sc.collectEntry(LevelWarn)
 }
 
 func (sc *Scavenger) Errorw(msg string, keyVals ...any) {
-	sc.AddEntryw(LevelError, msg, keyVals...)
+	sc.buf.Reset()
+	sc.x.Errorw(msg, keyVals...)
+	sc.collectEntry(LevelError)
+}
+
+func (sc *Scavenger) collectEntry(level string) {
+	d1 := sc.buf.Bytes()
+	d2 := bytes.TrimSuffix(d1, lineEnding)
+
+	if bytes.Count(d2, lineEnding) > 0 {
+		a := bytes.Split(d2, lineEnding)
+		sc.mu.Lock()
+		for i, v := range a {
+			switch i {
+			case len(a) - 1:
+				sc.entries = append(sc.entries, LogEntry{
+					Level:   level,
+					Message: string(v),
+				})
+			default:
+				sc.entries = append(sc.entries, LogEntry{
+					Level:   LevelError,
+					Message: string(v),
+				})
+			}
+		}
+		sc.mu.Unlock()
+		return
+	}
+
+	sc.mu.Lock()
+	sc.entries = append(sc.entries, LogEntry{
+		Level:   level,
+		Message: string(d2),
+	})
+	sc.mu.Unlock()
+}
+
+func (sc *Scavenger) FlushLogger() error {
+	return nil
 }
 
 // Reset clears all collected messages.
@@ -222,7 +248,7 @@ func (sc *Scavenger) Filter(fn func(level, msg string) bool) *Scavenger {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 
-	scav := NewScavenger(sc.extraPrinters...)
+	scav := NewScavenger()
 	scav.entries = make([]LogEntry, 0, len(sc.entries))
 	for _, e := range sc.entries {
 		if fn == nil || fn(e.Level, e.Message) {

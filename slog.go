@@ -1,5 +1,12 @@
 package slog
 
+const (
+	LevelDebug = "DEBUG"
+	LevelInfo  = "INFO"
+	LevelWarn  = "WARN"
+	LevelError = "ERROR"
+)
+
 // Logger is an interface which is highly compatible with zap.SugaredLogger.
 type Logger interface {
 	// NewLoggerWith adds a variadic number of fields to the logging context. It accepts a

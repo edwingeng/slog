@@ -1,9 +1,7 @@
 package slog
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"math"
 	"testing"
 )
@@ -305,25 +303,32 @@ func TestScavenger_Filter(t *testing.T) {
 	dump := `INFO	it is a good day to die
 WARN	3, c
 ERROR	4	{"foo": 100}
+ERROR	Ignored key without a value.	{"ignored": "dumb"}
 ERROR	1	{"foo": 100, "bar": "qux"}
 `
 
 	if newScav.Dump() != dump {
 		t.Fatal("something is wrong with Dump")
 	}
+
+	n := sc.Len()
+	newScav.Error("plus")
+	if sc.Len() != n {
+		t.Fatal(`sc.Len() != n`)
+	}
 }
 
 func TestScavenger_NewLoggerWith(t *testing.T) {
-	var sc1 = NewScavenger()
+	sc1 := NewScavenger()
 	sc2 := sc1.NewLoggerWith("hello", "world", "x1", math.MaxInt64).(*Scavenger)
 	sc3 := sc2.NewLoggerWith("hello", "world", "x2", math.MaxInt64).(*Scavenger)
 	sc3.Debug("it is a good day to die")
 	sc3.Infow("it is a good day to die")
 	sc3.Warnw("it is a good day to die", "bar", 100)
 
-	dump := `DEBUG	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "x2": 9223372036854775807}
-INFO	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "x2": 9223372036854775807}
-WARN	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "x2": 9223372036854775807, "bar": 100}
+	dump := `DEBUG	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "hello": "world", "x2": 9223372036854775807}
+INFO	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "hello": "world", "x2": 9223372036854775807}
+WARN	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "hello": "world", "x2": 9223372036854775807, "bar": 100}
 `
 	if sc3.Dump() != dump {
 		t.Fatal("something is wrong [sc3]")
@@ -331,62 +336,8 @@ WARN	it is a good day to die	{"hello": "world", "x1": 9223372036854775807, "x2":
 	if sc1.Dump() != dump {
 		t.Fatal("something is wrong [sc1]")
 	}
-}
 
-type fakePrinter struct {
-	n   int
-	err error
-	msg string
-}
-
-func (fp *fakePrinter) Print(level, message string) {
-	fp.msg = message
-}
-
-func (fp *fakePrinter) Sync() error {
-	fp.n++
-	return fp.err
-}
-
-func TestScavenger_FlushLogger(t *testing.T) {
-	if err := NewScavenger().FlushLogger(); err != nil {
-		t.Fatal(err)
-	}
-
-	fp1 := fakePrinter{
-		err: errors.New("1"),
-	}
-	fp2 := fakePrinter{
-		err: errors.New("2"),
-	}
-
-	sc := NewScavenger(&fp1, &fp2)
-	sc.Debug("100")
-	if fp1.msg != "100" {
-		t.Fatal(`fp1.msg != "100"`)
-	}
-	if fp2.msg != "100" {
-		t.Fatal(`fp2.msg != "100"`)
-	}
-
-	stdLog := sc.logger.stdLog
-	sc.logger.stdLog = log.New(nil, "", 0)
-	if err := sc.FlushLogger(); err == nil {
-		t.Fatal(`err == nil`)
-	} else if err.Error() != "nil writer" {
-		t.Fatal(`err.Error() != "nil writer"`)
-	}
-	if fp1.n != 1 {
-		t.Fatal(`fp1.n != 1`)
-	}
-	if fp2.n != 1 {
-		t.Fatal(`fp2.n != 1`)
-	}
-
-	sc.logger.stdLog = stdLog
-	if err := sc.FlushLogger(); err == nil {
-		t.Fatal(`err == nil`)
-	} else if err.Error() != "1" {
-		t.Fatal(`err.Error() != "1"`)
+	if sc3.Len() != sc1.Len() {
+		t.Fatal(`sc3.Len() != sc1.Len()`)
 	}
 }

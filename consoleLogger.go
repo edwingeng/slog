@@ -16,13 +16,6 @@ import (
 	"strings"
 )
 
-const (
-	LevelDebug = "DEBUG"
-	LevelInfo  = "INFO"
-	LevelWarn  = "WARN"
-	LevelError = "ERROR"
-)
-
 var (
 	_ Logger = (*ConsoleLogger)(nil)
 )
