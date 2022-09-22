@@ -20,6 +20,14 @@ func (cfg *Config) Build(opts ...zap.Option) (*ZapLogger, error) {
 	return NewZapLogger(zsl), nil
 }
 
+func (cfg *Config) MustBuild(opts ...zap.Option) *ZapLogger {
+	l, err := cfg.Build(opts...)
+	if err != nil {
+		panic(err)
+	}
+	return l
+}
+
 func NewDevelopmentConfig() *Config {
 	return NewDevelopmentConfigWith("02|15:04:05")
 }
