@@ -189,32 +189,48 @@ func (sc *Scavenger) Errorw(msg string, keyVals ...any) {
 	sc.collectEntry(LevelError)
 }
 
-func (sc *Scavenger) collectEntry(level string) {
-	d1 := sc.buf.Bytes()
-	d2 := bytes.TrimSuffix(d1, lineEnding)
+var (
+	_oddNumberErrMsg    = []byte("Ignored key without a value.")
+	_nonStringKeyErrMsg = []byte("Ignored key-value pairs with non-string keys.")
+)
 
-	if bytes.Count(d2, lineEnding) > 0 {
-		a := bytes.Split(d2, lineEnding)
-		for i, v := range a {
-			switch i {
-			case len(a) - 1:
-				sc.entries = append(sc.entries, LogEntry{
-					Level:   level,
-					Message: string(v),
-				})
-			default:
-				sc.entries = append(sc.entries, LogEntry{
-					Level:   LevelError,
-					Message: string(v),
-				})
-			}
+func splitFirstLine(data []byte) ([]byte, []byte) {
+	if idx := bytes.Index(data, lineEnding); idx >= 0 {
+		next := idx + len(lineEnding)
+		return data[:idx], data[next:]
+	} else {
+		return data, nil
+	}
+}
+
+func (sc *Scavenger) collectEntry(level string) {
+	x1 := sc.buf.Bytes()
+	x2 := bytes.TrimSuffix(x1, lineEnding)
+
+	processFirstLine := func() {
+		first, rest := splitFirstLine(x2)
+		sc.entries = append(sc.entries, LogEntry{
+			Level:   LevelError,
+			Message: string(first),
+		})
+		x2 = rest
+	}
+
+	for {
+		if bytes.HasPrefix(x2, _oddNumberErrMsg) {
+			processFirstLine()
+			continue
 		}
-		return
+		if bytes.HasPrefix(x2, _nonStringKeyErrMsg) {
+			processFirstLine()
+			continue
+		}
+		break
 	}
 
 	sc.entries = append(sc.entries, LogEntry{
 		Level:   level,
-		Message: string(d2),
+		Message: string(x2),
 	})
 }
 

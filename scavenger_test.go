@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"runtime/debug"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -289,7 +291,7 @@ func TestScavenger_Filter(t *testing.T) {
 	sc.Infow(fmt.Sprintf("%s", "it is a good day to die"))
 	sc.Warnw(fmt.Sprintf("%d, %s", 3, "c"))
 	sc.Errorw(fmt.Sprintf("%d", 4), "foo", 100)
-	sc.Warnw(fmt.Sprintf("%s", "it is a good day to die"), "dumb")
+	sc.Warnw(fmt.Sprintf("%s", "it is a good day to die"), "dumb\nsecond")
 	sc.Errorw(fmt.Sprintf("%d", 1), "foo", 100, "bar", "qux")
 
 	newScav := sc.Filter(func(level, msg string) bool {
@@ -306,11 +308,13 @@ func TestScavenger_Filter(t *testing.T) {
 	dump := `INFO	it is a good day to die
 WARN	3, c
 ERROR	4	{"foo": 100}
-ERROR	Ignored key without a value.	{"ignored": "dumb"}
+ERROR	Ignored key without a value.	{"ignored": "dumb\nsecond"}
 ERROR	1	{"foo": 100, "bar": "qux"}
 `
 
 	if newScav.Dump() != dump {
+		// Edwin
+		fmt.Println(newScav.Dump())
 		t.Fatal("something is wrong with Dump")
 	}
 
@@ -376,5 +380,38 @@ func TestScavenger_Race(t *testing.T) {
 		if !rex1.MatchString(e.Message) && !rex2.MatchString(e.Message) {
 			t.Fatal(`Scavenger is not thread-safe`)
 		}
+	}
+}
+
+func TestScavenger_Multiline(t *testing.T) {
+	var sc = NewScavenger()
+	sc.Debugf("full stack\n%s", debug.Stack())
+	if sc.Len() != 1 {
+		t.Fatal(`c.Len() != 1`)
+	}
+
+	sc.Debugw("it is a good day to die", "dumb\nsecond")
+	if sc.Len() != 3 {
+		t.Fatal(`sc.Len() != 3`)
+	}
+
+	sc.Debugw("it is a good day to die", []int{123}, "fire", []int{456})
+	if sc.Len() != 6 {
+		t.Fatal(`sc.Len() != 6`)
+	}
+
+	var count int
+	sc.Filter(func(level, msg string) bool {
+		if level == LevelError {
+			if strings.HasPrefix(msg, string(_oddNumberErrMsg)) {
+				count++
+			} else if strings.HasPrefix(msg, string(_nonStringKeyErrMsg)) {
+				count++
+			}
+		}
+		return true
+	})
+	if count != 3 {
+		t.Fatal(`count != 3`)
 	}
 }
