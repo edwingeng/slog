@@ -3,6 +3,8 @@ package slog
 import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/term"
+	"os"
 	"time"
 )
 
@@ -35,7 +37,9 @@ func NewDevelopmentConfig() *Config {
 func NewDevelopmentConfigWith(dateTimeFormat string) *Config {
 	cfg := zap.NewDevelopmentConfig()
 	cfg.DisableStacktrace = true
-	cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	if term.IsTerminal(int(os.Stdout.Fd())) {
+		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	}
 	cfg.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.Format(dateTimeFormat))
 	}
