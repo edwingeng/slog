@@ -27,7 +27,7 @@ func goID() int {
 	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
 	id, err := strconv.Atoi(idField)
 	if err != nil {
-		panic(fmt.Sprintf("cannot get goroutine id: %v", err))
+		panic(fmt.Sprintf("failed to get the goroutine id: %v", err))
 	}
 	return id
 }
@@ -285,6 +285,13 @@ func (sc *Scavenger) Dump() string {
 	return sb.String()
 }
 
+// LogEntry returns the log entry at index.
+func (sc *Scavenger) LogEntry(index int) LogEntry {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	return sc.entries[index]
+}
+
 // Filter creates a new Scavenger that contains only the log messages satisfying the predicate fn.
 func (sc *Scavenger) Filter(fn func(level, msg string) bool) *Scavenger {
 	sc.mu.Lock()
@@ -300,56 +307,17 @@ func (sc *Scavenger) Filter(fn func(level, msg string) bool) *Scavenger {
 	return scav
 }
 
-// StringExists returns whether any collected message contains str.
-func (sc *Scavenger) StringExists(str string) (yes bool) {
-	_, _, yes = sc.Finder().FindString(str)
-	return
+func (sc *Scavenger) Exists(str string) bool {
+	ret := sc.Finder().Find(str)
+	return len(ret) > 0
 }
 
-// UniqueStringExists returns whether one and only one collected message contains str.
-func (sc *Scavenger) UniqueStringExists(str string) (yes bool) {
-	_, _, yes = sc.Finder().FindUniqueString(str)
-	return
+func (sc *Scavenger) RegexpExists(str string) bool {
+	ret := sc.Finder().FindRegexp(str)
+	return len(ret) > 0
 }
 
-// FindStringSequence returns whether the collected messages contain the specified sequence.
-func (sc *Scavenger) FindStringSequence(seq []string) (found int, yes bool) {
-	return sc.Finder().FindStringSequence(seq)
-}
-
-// RegexpExists returns whether any collected message contains the regular expression pat.
-func (sc *Scavenger) RegexpExists(pat string) (yes bool) {
-	_, _, yes = sc.Finder().FindRegexp(pat)
-	return
-}
-
-// UniqueRegexpExists returns whether one and only one collected message contains the regular expression pat.
-func (sc *Scavenger) UniqueRegexpExists(pat string) (yes bool) {
-	_, _, yes = sc.Finder().FindUniqueRegexp(pat)
-	return
-}
-
-// FindRegexpSequence returns whether the collected messages contain the specified regular expression sequence.
-func (sc *Scavenger) FindRegexpSequence(seq []string) (found int, yes bool) {
-	return sc.Finder().FindRegexpSequence(seq)
-}
-
-// Exists returns whether any collected message contains str.
-// If str starts with "rex: ", it is regarded as a regular expression.
-func (sc *Scavenger) Exists(str string) (yes bool) {
-	_, _, yes = sc.Finder().Find(str)
-	return
-}
-
-// UniqueExists returns whether one and only one collected message contains str.
-// If str starts with "rex: ", it is regarded as a regular expression.
-func (sc *Scavenger) UniqueExists(str string) (yes bool) {
-	_, _, yes = sc.Finder().FindUnique(str)
-	return
-}
-
-// FindSequence returns whether the collected messages contain the specified sequence.
-// If a string in seq starts with "rex: ", it is regarded as a regular expression.
-func (sc *Scavenger) FindSequence(seq []string) (found int, yes bool) {
-	return sc.Finder().FindSequence(seq)
+func (sc *Scavenger) SequenceExists(seq []string) bool {
+	_, ok := sc.Finder().FindSequence(seq)
+	return ok
 }

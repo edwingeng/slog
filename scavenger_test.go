@@ -30,14 +30,17 @@ ERROR	4
 		t.Fatal("something is wrong with Dump: " + sc.Dump())
 	}
 
-	if yes := sc.StringExists(""); yes {
-		t.Fatal("StringExists does not work as expected")
+	if yes := sc.Exists(""); yes {
+		t.Fatal("Exists does not work as expected")
 	}
-	if yes := sc.StringExists("5"); yes {
-		t.Fatal("StringExists does not work as expected")
+	if yes := sc.Exists("5"); yes {
+		t.Fatal("Exists does not work as expected")
 	}
-	if yes := sc.StringExists("3"); !yes {
-		t.Fatal("StringExists does not work as expected")
+	if yes := sc.Exists("rex: 5"); yes {
+		t.Fatal("Exists does not work as expected")
+	}
+	if yes := sc.Exists("3"); !yes {
+		t.Fatal("Exists does not work as expected")
 	}
 
 	if yes := sc.RegexpExists(""); yes {
@@ -53,16 +56,9 @@ ERROR	4
 		t.Fatal("RegexpExists does not work as expected")
 	}
 
-	if yes := sc.Exists("5"); yes {
-		t.Fatal("Exists does not work as expected")
-	}
-	if yes := sc.Exists("rex: 5"); yes {
-		t.Fatal("Exists does not work as expected")
-	}
-
 	sc.Debug()
-	if yes := sc.StringExists(""); !yes {
-		t.Fatal("StringExists does not work as expected")
+	if yes := sc.Exists(""); !yes {
+		t.Fatal("Exists does not work as expected")
 	}
 	if yes := sc.RegexpExists(""); !yes {
 		t.Fatal("RegexpExists does not work as expected")
@@ -83,7 +79,7 @@ func TestScavenger_RegexpExists_Panic(t *testing.T) {
 	t.Fatal("RegexpExists should panic")
 }
 
-func TestScavenger_UniqueExists(t *testing.T) {
+func TestScavenger_Uniqueness(t *testing.T) {
 	var sc = NewScavenger()
 	sc.Debug("")
 	sc.Debugf("%d", 1)
@@ -109,45 +105,53 @@ ERROR	1
 		t.Fatal("something is wrong with Dump")
 	}
 
-	if yes := sc.UniqueStringExists("1"); yes {
-		t.Fatal("UniqueStringExists does not work as expected")
+	if ret := sc.Finder().FindString("1"); len(ret) != 2 {
+		t.Fatal("FindString does not work as expected")
+	} else if ret[0] != 1 || ret[1] != 6 {
+		t.Fatal("FindString does not work as expected")
 	}
-	if yes := sc.UniqueStringExists("it is a good day to die"); yes {
-		t.Fatal("UniqueStringExists does not work as expected")
+	if ret := sc.Finder().FindString("it is a good day to die"); len(ret) != 2 {
+		t.Fatal("FindString does not work as expected")
+	} else if ret[0] != 2 || ret[1] != 5 {
+		t.Fatal("FindString does not work as expected")
 	}
-	if yes := sc.UniqueStringExists("3"); !yes {
-		t.Fatal("UniqueStringExists does not work as expected")
+	if ret := sc.Finder().FindString("3"); len(ret) != 1 {
+		t.Fatal("FindString does not work as expected")
 	}
-	if yes := sc.UniqueStringExists(""); !yes {
-		t.Fatal("UniqueStringExists does not work as expected")
+	if ret := sc.Finder().FindString(""); len(ret) != 1 {
+		t.Fatal("FindString does not work as expected")
 	}
 
-	if yes := sc.UniqueRegexpExists("1"); yes {
-		t.Fatal("UniqueRegexpExists does not work as expected")
+	if ret := sc.Finder().FindRegexp("1"); len(ret) == 1 {
+		t.Fatal("FindRegexp does not work as expected")
+	} else if ret[0] != 1 || ret[1] != 6 {
+		t.Fatal("FindRegexp does not work as expected")
 	}
-	if yes := sc.UniqueRegexpExists("it is a good day to die"); yes {
-		t.Fatal("UniqueRegexpExists does not work as expected")
+	if ret := sc.Finder().FindRegexp("it is a good day to die"); len(ret) == 1 {
+		t.Fatal("FindRegexp does not work as expected")
+	} else if ret[0] != 2 || ret[1] != 5 {
+		t.Fatal("FindRegexp does not work as expected")
 	}
-	if yes := sc.UniqueRegexpExists("3"); !yes {
-		t.Fatal("UniqueRegexpExists does not work as expected")
+	if ret := sc.Finder().FindRegexp("3"); len(ret) != 1 {
+		t.Fatal("FindRegexp does not work as expected")
 	}
-	if yes := sc.UniqueRegexpExists("[3,4]"); yes {
-		t.Fatal("UniqueRegexpExists does not work as expected")
+	if ret := sc.Finder().FindRegexp("[3,4]"); len(ret) == 1 {
+		t.Fatal("FindRegexp does not work as expected")
 	}
 
 	sc.Debug("")
-	if yes := sc.UniqueStringExists(""); yes {
-		t.Fatal("UniqueStringExists does not work as expected")
+	if ret := sc.Finder().FindString(""); len(ret) == 1 {
+		t.Fatal("FindString does not work as expected")
 	}
-	if yes := sc.UniqueRegexpExists(""); yes {
-		t.Fatal("UniqueRegexpExists does not work as expected")
+	if ret := sc.Finder().FindRegexp(""); len(ret) == 1 {
+		t.Fatal("FindRegexp does not work as expected")
 	}
 
-	if yes := sc.UniqueExists("3"); !yes {
-		t.Fatal("UniqueExists does not work as expected")
+	if yes := sc.Exists("3"); !yes {
+		t.Fatal("Exists does not work as expected")
 	}
-	if yes := sc.UniqueExists("rex: 3"); !yes {
-		t.Fatal("UniqueExists does not work as expected")
+	if yes := sc.Exists("rex: 3"); !yes {
+		t.Fatal("Exists does not work as expected")
 	}
 }
 
@@ -165,7 +169,11 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"hello",
 		"world",
 	}
-	if found, yes := sc.FindStringSequence(a1); !yes || found != len(a1) {
+	if ret, ok := sc.Finder().FindStringSequence(a1); !ok || len(ret) != len(a1) {
+		t.Fatal("FindStringSequence does not work as expected")
+	} else if ret[0] != 0 || ret[1] != 3 {
+		t.Fatal("FindStringSequence does not work as expected")
+	} else if sc.LogEntry(ret[0]).Message != "hello 1" || sc.LogEntry(ret[1]).Message != "3world 2" {
 		t.Fatal("FindStringSequence does not work as expected")
 	}
 
@@ -173,7 +181,7 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"world",
 		"hello",
 	}
-	if found, yes := sc.FindStringSequence(a2); yes || found != 1 {
+	if ret, ok := sc.Finder().FindStringSequence(a2); ok || len(ret) != 1 {
 		t.Fatal("FindStringSequence does not work as expected")
 	}
 
@@ -182,7 +190,7 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"",
 		"world",
 	}
-	if found, yes := sc.FindStringSequence(a3); !yes || found != len(a3) {
+	if ret, ok := sc.Finder().FindStringSequence(a3); !ok || len(ret) != len(a3) {
 		t.Fatal("FindStringSequence does not work as expected")
 	}
 
@@ -191,7 +199,7 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"world",
 		"",
 	}
-	if found, yes := sc.FindStringSequence(a4); !yes || found != len(a4) {
+	if ret, ok := sc.Finder().FindStringSequence(a4); !ok || len(ret) != len(a4) {
 		t.Fatal("FindStringSequence does not work as expected")
 	}
 
@@ -199,7 +207,9 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"hello \\d+",
 		"it is a good.+",
 	}
-	if found, yes := sc.FindRegexpSequence(b1); !yes || found != len(b1) {
+	if ret, ok := sc.Finder().FindRegexpSequence(b1); !ok || len(ret) != len(b1) {
+		t.Fatal("FindRegexpSequence does not work as expected")
+	} else if ret[0] != 0 || ret[1] != 2 {
 		t.Fatal("FindRegexpSequence does not work as expected")
 	}
 
@@ -208,7 +218,7 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"fo+ bar",
 		"it is a good.+",
 	}
-	if found, yes := sc.FindRegexpSequence(b2); yes || found != 2 {
+	if ret, ok := sc.Finder().FindRegexpSequence(b2); ok || len(ret) != 2 {
 		t.Fatal("FindRegexpSequence does not work as expected")
 	}
 
@@ -217,12 +227,12 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"",
 		"it is a good.+",
 	}
-	if found, yes := sc.FindRegexpSequence(b3); !yes || found != len(b3) {
+	if ret, ok := sc.Finder().FindRegexpSequence(b3); !ok || len(ret) != len(b3) {
 		t.Fatal("FindRegexpSequence does not work as expected")
 	}
 
 	b4 := append(b3, "")
-	if found, yes := sc.FindRegexpSequence(b4); !yes || found != len(b4) {
+	if ret, ok := sc.Finder().FindRegexpSequence(b4); !ok || len(ret) != len(b4) {
 		t.Fatal("FindRegexpSequence does not work as expected")
 	}
 
@@ -230,7 +240,10 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"rex: hello \\d+",
 		"it is a good day",
 	}
-	if found, yes := sc.FindSequence(c1); !yes || found != len(c1) {
+	if yes := sc.SequenceExists(c1); !yes {
+		t.Fatal("SequenceExists does not work as expected")
+	}
+	if ret, ok := sc.Finder().FindSequence(c1); !ok || len(ret) != len(c1) {
 		t.Fatal("FindSequence does not work as expected")
 	}
 
@@ -239,16 +252,22 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"rex: fo+ bar",
 		"it is a good day",
 	}
-	if found, yes := sc.FindSequence(c2); yes || found != 2 {
+	if yes := sc.SequenceExists(c2); yes {
+		t.Fatal("SequenceExists does not work as expected")
+	}
+	if ret, ok := sc.Finder().FindSequence(c2); ok || len(ret) != 2 {
 		t.Fatal("FindSequence does not work as expected")
 	}
 
 	c3 := []string{
-		"rex: hello \\d+",
+		"rex:hello \\d+",
 		"it is a good day",
-		"rex: fo+ bar",
+		"rex:  fo+ bar",
 	}
-	if found, yes := sc.FindSequence(c3); !yes || found != len(c3) {
+	if yes := sc.SequenceExists(c3); !yes {
+		t.Fatal("SequenceExists does not work as expected")
+	}
+	if ret, ok := sc.Finder().FindSequence(c3); !ok || len(ret) != len(c3) {
 		t.Fatal("FindSequence does not work as expected")
 	}
 
@@ -257,12 +276,29 @@ func TestScavenger_FindSequence(t *testing.T) {
 		"",
 		"it is a good day",
 	}
-	if found, yes := sc.FindSequence(c4); !yes || found != len(c4) {
+	if yes := sc.SequenceExists(c4); !yes {
+		t.Fatal("SequenceExists does not work as expected")
+	}
+	if ret, ok := sc.Finder().FindSequence(c4); !ok || len(ret) != len(c4) {
 		t.Fatal("FindSequence does not work as expected")
 	}
 
 	c5 := append(c4, "rex: ")
-	if found, yes := sc.FindSequence(c5); !yes || found != len(c5) {
+	if yes := sc.SequenceExists(c5); !yes {
+		t.Fatal("SequenceExists does not work as expected")
+	}
+	if ret, ok := sc.Finder().FindSequence(c5); !ok || len(ret) != len(c5) {
+		t.Fatal("FindSequence does not work as expected")
+	}
+
+	c6 := []string{
+		"hello ",
+		"it is a good day",
+	}
+	if yes := sc.SequenceExists(c6); !yes {
+		t.Fatal("SequenceExists does not work as expected")
+	}
+	if ret, ok := sc.Finder().FindSequence(c6); !ok || len(ret) != len(c6) {
 		t.Fatal("FindSequence does not work as expected")
 	}
 }
@@ -291,7 +327,7 @@ func TestScavenger_Filter(t *testing.T) {
 	sc.Infow(fmt.Sprintf("%s", "it is a good day to die"))
 	sc.Warnw(fmt.Sprintf("%d, %s", 3, "c"))
 	sc.Errorw(fmt.Sprintf("%d", 4), "foo", 100)
-	sc.Warnw(fmt.Sprintf("%s", "it is a good day to die"), "dumb\nsecond")
+	sc.Warnw(fmt.Sprintf("%s", "it is a good day to die"), "%d\nsecond")
 	sc.Errorw(fmt.Sprintf("%d", 1), "foo", 100, "bar", "qux")
 
 	newScav := sc.Filter(func(level, msg string) bool {
@@ -308,7 +344,7 @@ func TestScavenger_Filter(t *testing.T) {
 	dump := `INFO	it is a good day to die
 WARN	3, c
 ERROR	4	{"foo": 100}
-ERROR	Ignored key without a value.	{"ignored": "dumb\nsecond"}
+ERROR	Ignored key without a value.	{"ignored": "%d\nsecond"}
 ERROR	1	{"foo": 100, "bar": "qux"}
 `
 
@@ -390,7 +426,7 @@ func TestScavenger_Multiline(t *testing.T) {
 		t.Fatal(`c.Len() != 1`)
 	}
 
-	sc.Debugw("it is a good day to die", "dumb\nsecond")
+	sc.Debugw("it is a good day to die", "%d\nsecond")
 	if sc.Len() != 3 {
 		t.Fatal(`sc.Len() != 3`)
 	}

@@ -8,81 +8,53 @@ import (
 
 type MessageFinder Scavenger
 
-func (mf *MessageFinder) FindString(str string) (string, int, bool) {
+func (mf *MessageFinder) FindString(str string) []int {
 	mf.mu.Lock()
 	defer mf.mu.Unlock()
 
+	var ret []int
 	if str != "" {
 		for i, e := range mf.entries {
 			if strings.Contains(e.Message, str) {
-				return e.Message, i, true
+				ret = append(ret, i)
 			}
 		}
 	} else {
 		for i, e := range mf.entries {
 			if e.Message == "" {
-				return "", i, true
+				ret = append(ret, i)
 			}
 		}
 	}
-	return "", 0, false
+	return ret
 }
 
-func (mf *MessageFinder) FindUniqueString(str string) (string, int, bool) {
+func (mf *MessageFinder) FindStringSequence(seq []string) ([]int, bool) {
 	mf.mu.Lock()
 	defer mf.mu.Unlock()
 
-	var r string
-	var n int
-	if str != "" {
-		for i, e := range mf.entries {
-			if strings.Contains(e.Message, str) {
-				r = e.Message
-				switch n++; n {
-				case 1:
-				default:
-					return r, i, false
-				}
-			}
+	var ret []int
+	for i, e := range mf.entries {
+		j := len(ret)
+		if j >= len(seq) {
+			break
 		}
-	} else {
-		for i, e := range mf.entries {
-			if e.Message == "" {
-				switch n++; n {
-				case 1:
-				default:
-					return r, i, false
-				}
-			}
-		}
-	}
-	return r, 0, n == 1
-}
-
-func (mf *MessageFinder) FindStringSequence(a []string) (int, bool) {
-	mf.mu.Lock()
-	defer mf.mu.Unlock()
-
-	var j int
-	for i := 0; i < len(mf.entries); i++ {
-		if a[j] != "" {
-			if strings.Contains(mf.entries[i].Message, a[j]) {
-				if j++; j >= len(a) {
-					break
-				}
+		if seq[j] != "" {
+			if strings.Contains(e.Message, seq[j]) {
+				ret = append(ret, i)
 			}
 		} else {
-			if mf.entries[i].Message == "" {
-				if j++; j >= len(a) {
-					break
-				}
+			if e.Message == "" {
+				ret = append(ret, i)
 			}
 		}
 	}
-	return j, j == len(a)
+
+	ok := len(ret) == len(seq)
+	return ret, ok
 }
 
-func (mf *MessageFinder) FindRegexp(pat string) (string, int, bool) {
+func (mf *MessageFinder) FindRegexp(pat string) []int {
 	if pat == "" {
 		return mf.FindString("")
 	}
@@ -95,45 +67,18 @@ func (mf *MessageFinder) FindRegexp(pat string) (string, int, bool) {
 	mf.mu.Lock()
 	defer mf.mu.Unlock()
 
+	var ret []int
 	for i, e := range mf.entries {
 		if rex.FindStringIndex(e.Message) != nil {
-			return e.Message, i, true
+			ret = append(ret, i)
 		}
 	}
-	return "", 0, false
+	return ret
 }
 
-func (mf *MessageFinder) FindUniqueRegexp(pat string) (string, int, bool) {
-	if pat == "" {
-		return mf.FindUniqueString("")
-	}
-
-	rex, err := regexp.Compile(pat)
-	if err != nil {
-		panic(err)
-	}
-
-	mf.mu.Lock()
-	defer mf.mu.Unlock()
-
-	var r string
-	var n int
-	for i, e := range mf.entries {
-		if rex.FindStringIndex(e.Message) != nil {
-			r = e.Message
-			switch n++; n {
-			case 1:
-			default:
-				return r, i, false
-			}
-		}
-	}
-	return r, 0, n == 1
-}
-
-func (mf *MessageFinder) FindRegexpSequence(a []string) (int, bool) {
-	rexArr := make([]*regexp.Regexp, len(a))
-	for i, pat := range a {
+func (mf *MessageFinder) FindRegexpSequence(seq []string) ([]int, bool) {
+	rexArr := make([]*regexp.Regexp, len(seq))
+	for i, pat := range seq {
 		if pat != "" {
 			if rex, err := regexp.Compile(pat); err != nil {
 				panic(err)
@@ -146,27 +91,28 @@ func (mf *MessageFinder) FindRegexpSequence(a []string) (int, bool) {
 	mf.mu.Lock()
 	defer mf.mu.Unlock()
 
-	var j int
-	for i := 0; i < len(mf.entries); i++ {
-		rex := rexArr[j]
-		if rex != nil {
-			if rex.FindStringIndex(mf.entries[i].Message) != nil {
-				if j++; j >= len(a) {
-					break
-				}
+	var ret []int
+	for i, e := range mf.entries {
+		j := len(ret)
+		if j >= len(seq) {
+			break
+		}
+		if rex := rexArr[j]; rex != nil {
+			if rex.FindStringIndex(e.Message) != nil {
+				ret = append(ret, i)
 			}
 		} else {
-			if mf.entries[i].Message == "" {
-				if j++; j >= len(a) {
-					break
-				}
+			if e.Message == "" {
+				ret = append(ret, i)
 			}
 		}
 	}
-	return j, j == len(a)
+
+	ok := len(ret) == len(seq)
+	return ret, ok
 }
 
-func (mf *MessageFinder) Find(str string) (string, int, bool) {
+func (mf *MessageFinder) Find(str string) []int {
 	if strings.HasPrefix(str, rexPrefix) {
 		pat := strings.TrimLeftFunc(strings.TrimPrefix(str, rexPrefix), unicode.IsSpace)
 		return mf.FindRegexp(pat)
@@ -175,19 +121,11 @@ func (mf *MessageFinder) Find(str string) (string, int, bool) {
 	}
 }
 
-func (mf *MessageFinder) FindUnique(str string) (string, int, bool) {
-	if strings.HasPrefix(str, rexPrefix) {
-		pat := strings.TrimLeftFunc(strings.TrimPrefix(str, rexPrefix), unicode.IsSpace)
-		return mf.FindUniqueRegexp(pat)
-	} else {
-		return mf.FindUniqueString(str)
-	}
-}
-
-func (mf *MessageFinder) FindSequence(a []string) (int, bool) {
-	rexArr := make([]*regexp.Regexp, len(a))
-	strArr := make([]string, len(a))
-	for i, str := range a {
+func (mf *MessageFinder) FindSequence(seq []string) ([]int, bool) {
+	rexArr := make([]*regexp.Regexp, len(seq))
+	strArr := make([]string, len(seq))
+	var rexCount int
+	for i, str := range seq {
 		if strings.HasPrefix(str, rexPrefix) {
 			pat := strings.TrimLeftFunc(strings.TrimPrefix(str, rexPrefix), unicode.IsSpace)
 			if pat != "" {
@@ -195,6 +133,7 @@ func (mf *MessageFinder) FindSequence(a []string) (int, bool) {
 					panic(err)
 				} else {
 					rexArr[i] = rex
+					rexCount++
 				}
 			} else {
 				strArr[i] = ""
@@ -203,30 +142,34 @@ func (mf *MessageFinder) FindSequence(a []string) (int, bool) {
 			strArr[i] = str
 		}
 	}
+	if rexCount == 0 {
+		return mf.FindStringSequence(seq)
+	}
 
 	mf.mu.Lock()
 	defer mf.mu.Unlock()
 
-	var j int
-	for i := 0; i < len(mf.entries); i++ {
-		rex := rexArr[j]
-		if rex != nil {
-			if rex.FindString(mf.entries[i].Message) != "" {
-				if j++; j >= len(a) {
-					break
-				}
+	var ret []int
+	for i, e := range mf.entries {
+		j := len(ret)
+		if j >= len(seq) {
+			break
+		}
+		if rex := rexArr[j]; rex != nil {
+			if rex.FindStringIndex(e.Message) != nil {
+				ret = append(ret, i)
 			}
 		} else if str := strArr[j]; str != "" {
-			if strings.Contains(mf.entries[i].Message, str) {
-				if j++; j >= len(a) {
-					break
-				}
+			if strings.Contains(e.Message, str) {
+				ret = append(ret, i)
 			}
-		} else if mf.entries[i].Message == "" {
-			if j++; j >= len(a) {
-				break
+		} else {
+			if e.Message == "" {
+				ret = append(ret, i)
 			}
 		}
 	}
-	return j, j == len(a)
+
+	ok := len(ret) == len(seq)
+	return ret, ok
 }
