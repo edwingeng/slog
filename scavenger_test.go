@@ -79,6 +79,7 @@ func TestScavenger_RegexpExists_Panic(t *testing.T) {
 	t.Fatal("RegexpExists should panic")
 }
 
+//gocyclo:ignore
 func TestScavenger_Uniqueness(t *testing.T) {
 	var sc = NewScavenger()
 	sc.Debug("")
