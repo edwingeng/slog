@@ -11,9 +11,9 @@ func NewDevourer() Logger {
 	return devourer{}
 }
 
-func (devourer) NewLoggerWith(keyVals ...any) Logger {
-	return devourer{}
-}
+func (devourer) NewLoggerWith(keyVals ...any) Logger { return devourer{} }
+
+func (devourer) LogLevelEnabled(level int) bool { return false }
 
 func (devourer) Debug(args ...any) {}
 func (devourer) Info(args ...any)  {}

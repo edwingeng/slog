@@ -93,6 +93,10 @@ func (sc *Scavenger) NewLoggerWith(keyVals ...any) Logger {
 	return scav
 }
 
+func (sc *Scavenger) LogLevelEnabled(level int) bool {
+	return true
+}
+
 func (sc *Scavenger) Debug(args ...any) {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()

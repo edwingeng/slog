@@ -15,6 +15,9 @@ type Logger interface {
 	// and the second as the field value. The keys in key-value pairs should be strings.
 	NewLoggerWith(keyVals ...any) Logger
 
+	// LogLevelEnabled checks if the given log level is enabled.
+	LogLevelEnabled(level int) bool
+
 	// Debug uses fmt.Sprint to construct and log a message.
 	Debug(args ...any)
 	// Info uses fmt.Sprint to construct and log a message.

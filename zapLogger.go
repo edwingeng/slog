@@ -27,6 +27,10 @@ func (zl *ZapLogger) NewLoggerWith(keyVals ...any) Logger {
 	return &ZapLogger{*zl.x.With(keyVals...)}
 }
 
+func (zl *ZapLogger) LogLevelEnabled(level int) bool {
+	return level >= int(zl.x.Level())
+}
+
 func (zl *ZapLogger) Debug(args ...any) {
 	zl.x.Debug(args...)
 }
