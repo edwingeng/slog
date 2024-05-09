@@ -1,11 +1,13 @@
 # Overview
-`slog` is a collection of handy log utilities, including `ZapLogger`, `Scavenger` and `DumbLogger`.
+`slog` is a collection of handy log utilities, including `ZapLogger`, `Scavenger` and `Devourer`.
 
 Each of them implements the following interface:
 
 ``` go
 type Logger interface {
     NewLoggerWith(keyVals ...any) Logger
+    LogLevelEnabled(level int) bool
+    FlushLogger() error
 
     Debug(args ...any)
     Info(args ...any)
@@ -21,8 +23,6 @@ type Logger interface {
     Infow(msg string, keyVals ...any)
     Warnw(msg string, keyVals ...any)
     Errorw(msg string, keyVals ...any)
-
-    FlushLogger() error
 }
 ```
 
@@ -68,36 +68,34 @@ I love `Scavenger` the most. `Scavenger` saves all log messages in memory for la
 ``` go
 func NewScavenger() *Scavenger
 
-func (sc *Scavenger) StringExists(str string) (yes bool)
-func (sc *Scavenger) UniqueStringExists(str string) (yes bool)
-func (sc *Scavenger) FindStringSequence(seq []string) (found int, yes bool)
-func (sc *Scavenger) RegexpExists(pat string) (yes bool)
-func (sc *Scavenger) UniqueRegexpExists(pat string) (yes bool)
-func (sc *Scavenger) FindRegexpSequence(seq []string) (found int, yes bool)
-func (sc *Scavenger) Exists(str string) (yes bool)
-func (sc *Scavenger) UniqueExists(str string) (yes bool)
-func (sc *Scavenger) FindSequence(seq []string) (found int, yes bool)
+func (sc *Scavenger) Exists(str string) bool
+func (sc *Scavenger) RegexpExists(str string) bool
+func (sc *Scavenger) SequenceExists(seq []string) bool
 func (sc *Scavenger) Finder() *MessageFinder
 
 func (sc *Scavenger) Dump() string
 func (sc *Scavenger) Entries() []LogEntry
+func (sc *Scavenger) LogEntry(index int) LogEntry
 func (sc *Scavenger) Filter(fn func(level, msg string) bool) *Scavenger
 func (sc *Scavenger) Len() int
 func (sc *Scavenger) Reset()
 
-func (sc *Scavenger) Debug(args ...any)
-func (sc *Scavenger) Debugf(format string, args ...any)
-func (sc *Scavenger) Debugw(msg string, keyVals ...any)
-func (sc *Scavenger) Info(args ...any)
-func (sc *Scavenger) Infof(format string, args ...any)
-func (sc *Scavenger) Infow(msg string, keyVals ...any)
-func (sc *Scavenger) Warn(args ...any)
-func (sc *Scavenger) Warnf(format string, args ...any)
-func (sc *Scavenger) Warnw(msg string, keyVals ...any)
-func (sc *Scavenger) Error(args ...any)
-func (sc *Scavenger) Errorf(format string, args ...any)
-func (sc *Scavenger) Errorw(msg string, keyVals ...any)
-
 func (sc *Scavenger) NewLoggerWith(keyVals ...any) Logger
+func (sc *Scavenger) LogLevelEnabled(level int) bool
 func (sc *Scavenger) FlushLogger() error
+
+func (sc *Scavenger) Debug(args ...any)
+func (sc *Scavenger) Info(args ...any)
+func (sc *Scavenger) Warn(args ...any)
+func (sc *Scavenger) Error(args ...any)
+
+func (sc *Scavenger) Debugf(format string, args ...any)
+func (sc *Scavenger) Infof(format string, args ...any)
+func (sc *Scavenger) Warnf(format string, args ...any)
+func (sc *Scavenger) Errorf(format string, args ...any)
+
+func (sc *Scavenger) Debugw(msg string, keyVals ...any)
+func (sc *Scavenger) Infow(msg string, keyVals ...any)
+func (sc *Scavenger) Warnw(msg string, keyVals ...any)
+func (sc *Scavenger) Errorw(msg string, keyVals ...any)
 ```
