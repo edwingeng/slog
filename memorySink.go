@@ -13,12 +13,13 @@ var (
 
 var (
 	sinkRegistry struct {
+		once sync.Once
 		sync.Mutex
 		m map[string]*memorySink
 	}
 )
 
-func init() {
+func initRegistry() {
 	sinkRegistry.m = make(map[string]*memorySink)
 	if err := registerMemorySinkFactory(); err != nil {
 		panic(err)

@@ -53,6 +53,7 @@ type Scavenger struct {
 
 // NewScavenger creates a new Scavenger.
 func NewScavenger() *Scavenger {
+	sinkRegistry.once.Do(initRegistry)
 	sinkName := fmt.Sprintf("scavenger-%d", goID())
 	sink := &memorySink{}
 	sinkRegistry.Lock()
