@@ -1,9 +1,12 @@
-package slog
+package slog_test
 
-import "context"
+import (
+	"context"
+	"github.com/edwingeng/slog"
+)
 
 func Example() {
-	logger, err := NewDevelopmentConfig().Build()
+	logger, err := slog.NewDevelopmentConfig().Build()
 	if err != nil {
 		panic(err)
 	}
@@ -14,7 +17,7 @@ func Example() {
 
 	type HandlerContext struct {
 		context.Context
-		Logger
+		slog.Logger
 	}
 
 	ctx := &HandlerContext{

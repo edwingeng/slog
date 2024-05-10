@@ -34,7 +34,7 @@ go get -u github.com/edwingeng/slog
 # Usage
 
 ``` go
-logger, err := NewDevelopmentConfig().Build()
+logger, err := slog.NewDevelopmentConfig().Build()
 if err != nil {
     panic(err)
 }
@@ -45,7 +45,7 @@ logger.Warnw("str3", "foo", 300)
 
 type HandlerContext struct {
     context.Context
-    Logger
+    slog.Logger
 }
 
 ctx := &HandlerContext{
