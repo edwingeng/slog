@@ -69,7 +69,6 @@ I love `Scavenger` the most. `Scavenger` saves all log messages in memory for la
 func NewScavenger() *Scavenger
 
 func (sc *Scavenger) Exists(str string) bool
-func (sc *Scavenger) RegexpExists(str string) bool
 func (sc *Scavenger) SequenceExists(seq []string) bool
 func (sc *Scavenger) Finder() *MessageFinder
 

@@ -43,25 +43,9 @@ ERROR	4
 		t.Fatal("Exists does not work as expected")
 	}
 
-	if yes := sc.RegexpExists(""); yes {
-		t.Fatal("RegexpExists does not work as expected")
-	}
-	if yes := sc.RegexpExists("5"); yes {
-		t.Fatal("RegexpExists does not work as expected")
-	}
-	if yes := sc.RegexpExists("g.+?d"); !yes {
-		t.Fatal("RegexpExists does not work as expected")
-	}
-	if yes := sc.RegexpExists("^.+good.+die$"); !yes {
-		t.Fatal("RegexpExists does not work as expected")
-	}
-
 	sc.Debug()
 	if yes := sc.Exists(""); !yes {
 		t.Fatal("Exists does not work as expected")
-	}
-	if yes := sc.RegexpExists(""); !yes {
-		t.Fatal("RegexpExists does not work as expected")
 	}
 
 	sc.Reset()
@@ -70,12 +54,12 @@ ERROR	4
 	}
 }
 
-func TestScavenger_RegexpExists_Panic(t *testing.T) {
+func TestScavenger_FindRegexp_Panic(t *testing.T) {
 	defer func() {
 		_ = recover()
 	}()
 	var sc Scavenger
-	sc.RegexpExists("[")
+	sc.Finder().FindRegexp("[")
 	t.Fatal("RegexpExists should panic")
 }
 

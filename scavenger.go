@@ -312,11 +312,6 @@ func (sc *Scavenger) Exists(str string) bool {
 	return len(ret) > 0
 }
 
-func (sc *Scavenger) RegexpExists(str string) bool {
-	ret := sc.Finder().FindRegexp(str)
-	return len(ret) > 0
-}
-
 func (sc *Scavenger) SequenceExists(seq []string) bool {
 	_, ok := sc.Finder().FindSequence(seq)
 	return ok
