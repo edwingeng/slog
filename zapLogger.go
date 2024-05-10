@@ -2,6 +2,7 @@ package slog
 
 import (
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -33,7 +34,7 @@ func (zl *ZapLogger) NewLoggerWith(keyVals ...any) Logger {
 }
 
 func (zl *ZapLogger) LogLevelEnabled(level int) bool {
-	return level >= int(zl.x.Level())
+	return zl.l.Core().Enabled(zapcore.Level(level))
 }
 
 func (zl *ZapLogger) Debug(args ...any) {
