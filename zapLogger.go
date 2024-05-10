@@ -11,20 +11,25 @@ var (
 // ZapLogger is a wrapper of zap.SugaredLogger.
 type ZapLogger struct {
 	x zap.SugaredLogger
+	l zap.Logger
 }
 
 // NewZapLogger creates a new ZapLogger.
 func NewZapLogger(zsl *zap.SugaredLogger) *ZapLogger {
-	return &ZapLogger{*zsl.WithOptions(zap.AddCallerSkip(1))}
+	return &ZapLogger{
+		x: *zsl.WithOptions(zap.AddCallerSkip(1)),
+		l: *zsl.Desugar(),
+	}
 }
 
-// Zap returns the internal zap.SugaredLogger to the caller.
-func (zl *ZapLogger) Zap() *zap.SugaredLogger {
-	return &zl.x
+// Zap returns the internal zap.Logger to the caller.
+func (zl *ZapLogger) Zap() *zap.Logger {
+	return &zl.l
 }
 
 func (zl *ZapLogger) NewLoggerWith(keyVals ...any) Logger {
-	return &ZapLogger{*zl.x.With(keyVals...)}
+	zsl := zl.x.With(keyVals...).WithOptions(zap.AddCallerSkip(-1))
+	return NewZapLogger(zsl)
 }
 
 func (zl *ZapLogger) LogLevelEnabled(level int) bool {
