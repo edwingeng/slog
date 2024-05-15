@@ -5,6 +5,13 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+const (
+	ZapDebugLevel = int(zapcore.DebugLevel)
+	ZapInfoLevel  = int(zapcore.InfoLevel)
+	ZapWarnLevel  = int(zapcore.WarnLevel)
+	ZapErrorLevel = int(zapcore.ErrorLevel)
+)
+
 var (
 	_ Logger = &ZapLogger{}
 )
