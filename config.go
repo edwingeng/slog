@@ -31,7 +31,7 @@ func (cfg *Config) MustBuild(opts ...zap.Option) *ZapLogger {
 }
 
 func NewDevelopmentConfig() *Config {
-	return NewDevelopmentConfigWith("02|15:04:05")
+	return NewDevelopmentConfigWith("02|15:04:05.000")
 }
 
 func NewDevelopmentConfigWith(dateTimeFormat string) *Config {
